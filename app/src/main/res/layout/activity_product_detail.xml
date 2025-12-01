@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nested_scroll_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent">
+
+        <!-- Large Product Image Area (Top ~30% of screen) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_product_image"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/product_image_placeholder"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintHeight_percent="0.30">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/detail_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:background="@color/product_image_placeholder" />
+
+                <VideoView
+                    android:id="@+id/detail_video"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Warning Banner -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_warning"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            app:cardBackgroundColor="@color/black"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_product_image">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_warning_banner">
+
+                <ImageView
+                    android:id="@+id/icon_warning"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_warning"
+                    android:tint="@color/warning_yellow"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/text_warning"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="WARNING: THIS PRODUCT CONTAINS NICOTINE. NICOTINE IS AN ADDICTIVE CHEMICAL."
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.1"
+                    android:textAllCaps="true" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Ratings Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_rating"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_warning">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_star_filled"
+                        android:tint="@color/star_filled" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_star_filled"
+                        android:tint="@color/star_filled" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_star_filled"
+                        android:tint="@color/star_filled" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_star_filled"
+                        android:tint="@color/star_filled" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_star_outline"
+                        android:tint="@color/star_outline" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_rating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="4.8/5.0"
+                    android:textColor="@color/text_muted"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:id="@+id/text_review_count"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="(2,847 reviews)"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/inter" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Product Information Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_product_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_rating">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:id="@+id/text_category"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PREMIUM NICOTINE POUCHES"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.2"
+                    android:textAllCaps="true"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/detail_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ZOOTBOX"
+                    android:textColor="@color/text_primary"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/archivo_black"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/detail_price"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="$24.99"
+                        android:textColor="@color/text_primary"
+                        android:textSize="32sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/archivo_black"
+                        android:layout_marginEnd="12dp" />
+
+                    <TextView
+                        android:id="@+id/detail_previous_price"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="$29.99"
+                        android:textColor="@color/text_muted"
+                        android:textSize="18sp"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_product_snippet"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Premium nicotine pouches designed for a smooth, satisfying experience. Tobacco-free and discreet, perfect for any occasion."
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/inter"
+                    android:lineSpacingExtra="4dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Flavor Selection Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_flavor"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_product_info">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FLAVOR"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.2"
+                    android:textAllCaps="true"
+                    android:layout_marginBottom="12dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/text_muted"
+                    android:alpha="0.3"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/text_flavor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SPEARMINT"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/text_nicotine_strength"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="6mg Nicotine Strength"
+                    android:textColor="@color/text_muted"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/inter" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Quantity and Add to Cart Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_quantity_cart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_flavor">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QUANTITY"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.2"
+                    android:textAllCaps="true"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Quantity Selector -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <Button
+                        android:id="@+id/btn_quantity_minus"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="-"
+                        android:textColor="@color/text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_quantity_button"
+                        android:fontFamily="@font/space_grotesk" />
+
+                    <TextView
+                        android:id="@+id/text_quantity"
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:text="1"
+                        android:textColor="@color/text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:fontFamily="@font/space_grotesk"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_quantity_plus"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="+"
+                        android:textColor="@color/text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:background="@drawable/bg_quantity_button"
+                        android:fontFamily="@font/space_grotesk" />
+                </LinearLayout>
+
+                <!-- Add to Cart Button -->
+                <Button
+                    android:id="@+id/btn_add_to_cart"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="ADD TO CART - $24.99"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.1"
+                    android:textAllCaps="true"
+                    android:background="@drawable/bg_add_to_cart_button"
+                    android:drawableStart="@drawable/ic_shopping_cart"
+                    android:drawablePadding="12dp"
+                    android:gravity="center"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Description Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_description"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_quantity_cart">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DESCRIPTION"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.2"
+                    android:textAllCaps="true"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/detail_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Experience the refreshing taste of spearmint with our premium tobacco-free nicotine pouches. Each Zoot Box contains 15 pouches of 6mg strength. Discreet, smoke-free, and designed for modern lifestyles. Perfect for use anywhere, anytime."
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/inter"
+                    android:lineSpacingExtra="4dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Specifications Section -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_specifications"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="80dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/card_description">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SPECIFICATIONS"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="@font/space_grotesk"
+                    android:letterSpacing="0.2"
+                    android:textAllCaps="true"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Specification Items -->
+                <LinearLayout
+                    android:id="@+id/spec_nicotine"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Nicotine Strength"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/inter" />
+
+                    <TextView
+                        android:id="@+id/spec_nicotine_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="6mg"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/spec_pouches"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Pouches Per Can"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/inter" />
+
+                    <TextView
+                        android:id="@+id/spec_pouches_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="15 pouches"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/spec_flavor_profile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Flavor Profile"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/inter" />
+
+                    <TextView
+                        android:id="@+id/spec_flavor_profile_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Spearmint"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/spec_format"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Format"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/inter" />
+
+                    <TextView
+                        android:id="@+id/spec_format_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Slim"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/spec_tobacco_free"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Tobacco-Free"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/inter" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_checkmark"
+                        android:tint="@color/text_primary"
+                        android:layout_marginEnd="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Yes"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="@font/inter" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.core.widget.NestedScrollView>

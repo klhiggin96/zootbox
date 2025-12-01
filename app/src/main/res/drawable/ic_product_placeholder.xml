@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Background Circle -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M0,0h200v200h-200z"/>
+        
+    <!-- Stylized Box/Vape Shape -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M80,50 h40 v100 h-40 z" />
+        
+    <!-- Glow/Accent -->
+    <path
+        android:fillColor="#FF10F0"
+        android:fillAlpha="0.5"
+        android:pathData="M90,60 h20 v20 h-20 z" />
+
+</vector>

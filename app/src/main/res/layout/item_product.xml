@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="12dp"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/selector_rounded_card">
+
+        <!-- Product Image Container (White Background) -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="180dp"
+            android:background="@drawable/bg_white_rounded_top"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Product Image (Top 65%) -->
+        <ImageView
+            android:id="@+id/img_product"
+            android:layout_width="0dp"
+            android:layout_height="180dp"
+            android:scaleType="fitCenter"
+            android:padding="16dp"
+            android:src="@drawable/zyn"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Info Panel (Glass Overlay) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:background="@drawable/bg_glass_panel"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/img_product">
+
+            <TextView
+                android:id="@+id/tv_slot_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_panel"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:fontFamily="@font/space_grotesk"
+                android:text="01"
+                android:textColor="@color/florida_gold"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.2"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_product_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFamily="@font/permanent_marker"
+                android:text="Product Name"
+                android:textColor="@color/neon_white"
+                android:textSize="24sp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:rotation="-2" 
+                android:shadowColor="@color/neon_pink"
+                android:shadowDx="4"
+                android:shadowDy="4"
+                android:shadowRadius="8"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_slot_id" />
+                <!-- Rotation adds that "slapped on sticker" swag vibe -->
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.cardview.widget.CardView>
