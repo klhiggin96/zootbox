@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="32dp"
+    app:cardElevation="8dp"
+    app:cardPreventCornerOverlap="false"
+    app:strokeColor="#50FFFFFF"
+    app:strokeWidth="1dp"
+    android:foreground="@drawable/bg_glass_shine"
+    android:backgroundTint="@null">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/backgroundContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_gradient">
+
+        <!-- Aspect Ratio Guide -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="H,360:460"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- Header Text: ZOOTB -->
+        <TextView
+            android:id="@+id/headerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="zb"
+            android:fontFamily="@font/y2k_brutalism_family"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="normal"
+            android:shadowColor="#B3000000"
+            android:shadowDx="0"
+            android:shadowDy="10"
+            android:shadowRadius="4"
+            android:letterSpacing="-0.02"
+            android:textAllCaps="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Product Image Container (Circular Crop with Shadow) -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/imageContainer"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:cardCornerRadius="130dp"
+            app:cardElevation="20dp"
+            android:outlineSpotShadowColor="#B3000000"
+            android:outlineAmbientShadowColor="#B3000000"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintWidth_percent="0.74"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="50dp">
+
+            <ImageView
+                android:id="@+id/productImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleX="1.71"
+                android:scaleY="1.76"
+                android:src="@drawable/zyn"
+                android:scaleType="centerCrop" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- Details Container -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/detailsContainer"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_marginBottom="24dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:background="@drawable/bg_details_container"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:elevation="4dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <!-- Description Section -->
+            <LinearLayout
+                android:id="@+id/descriptionSection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DESCRIPTION"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:letterSpacing="0.05"
+                    android:fontFamily="@font/space_mono"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/productDescription"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Description"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:fontFamily="@font/space_mono"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Price Section -->
+            <LinearLayout
+                android:id="@+id/priceSection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                app:layout_constraintStart_toEndOf="@id/descriptionSection"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PRICE"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:letterSpacing="0.05"
+                    android:fontFamily="@font/space_mono"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/productPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="price"
+                    android:textSize="10sp"
+                    android:textColor="#000000"
+                    android:fontFamily="@font/space_mono"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Brand Logo (Zoot Box) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end|center_vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ZOOT"
+                    android:textSize="12sp"
+                    android:textColor="#000000"
+                    android:fontFamily="@font/archivo_black_family"
+                    android:letterSpacing="-0.05" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BOX"
+                    android:textSize="12sp"
+                    android:textColor="#000000"
+                    android:fontFamily="@font/archivo_black_family"
+                    android:letterSpacing="-0.05" />
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

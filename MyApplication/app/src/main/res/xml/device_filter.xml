@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- E-Seek M260 ID Scanner -->
+    <usb-device vendor-id="1027" product-id="24577" />
+    <!-- Nayax VPOS Touch -->
+    <usb-device vendor-id="9969" product-id="22096" />
+</resources>
+

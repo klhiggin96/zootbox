@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.MyApplication" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/deep_night_purple</item>
+        <item name="colorPrimaryVariant">@color/rich_black</item>
+        <item name="colorOnPrimary">@color/neon_white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/teal_305</item>
+        <item name="colorSecondaryVariant">@color/teal_305</item>
+        <item name="colorOnSecondary">@color/rich_black</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/rich_black</item>
+        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@color/rich_black</item>
+    </style>
+</resources>

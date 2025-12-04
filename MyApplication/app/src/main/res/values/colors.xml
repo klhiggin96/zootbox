@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <!-- <color name="purple_500">#FF6200EE</color> Duplicated -->
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Restored legacy colors -->
+    <color name="deep_night_purple">#1A0524</color>
+    <color name="rich_black">#0D0D12</color>
+    <color name="asphalt_gray">#2D2D2D</color>
+    <color name="florida_gold">#FFB300</color>
+
+    <!-- Project Colors -->
+    <color name="neon_white">#FFFFFF</color>
+    <color name="neon_pink">#F0E0F5</color>
+    <color name="neon_green">#14A566</color>
+    <color name="background_dark">#050505</color>
+    <color name="background_dark_accent">#0D0D12</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="text_primary">#030213</color>
+    <color name="text_muted">#717182</color>
+    <color name="teal_305">#00E5FF</color>
+    
+    <!-- Theme Colors from Design System -->
+    <color name="primary">#030213</color>
+    <color name="primary_foreground">#FFFFFF</color>
+    <color name="secondary">#F0E0F5</color>
+    <color name="secondary_foreground">#030213</color>
+    <color name="destructive">#D4183D</color>
+    <color name="destructive_foreground">#FFFFFF</color>
+    <color name="muted">#ECECF0</color>
+    <color name="muted_foreground">#717182</color>
+    <color name="accent">#E9EBEF</color>
+    <color name="accent_foreground">#030213</color>
+    
+    <!-- Chart Colors -->
+    <color name="chart_1">#A4D8E1</color>
+    <color name="chart_2">#99E5C5</color>
+    <color name="chart_3">#6590D6</color>
+    <color name="chart_4">#D3D0F7</color>
+    <color name="chart_5">#C4CDE0</color>
+
+    <!-- Animation Colors -->
+    <color name="anim_purple_400">#c084fc</color>
+    <color name="anim_pink_400">#e879f9</color>
+    <color name="anim_blue_400">#60a5fa</color>
+    <color name="anim_cyan_300">#67e8f9</color>
+    <color name="anim_purple_300">#d8b4fe</color>
+    <color name="anim_pink_300">#f9a8d4</color>
+    <color name="anim_green_400">#4ade80</color>
+    <color name="anim_emerald_400">#34d399</color>
+    <color name="anim_green_500">#22c55e</color>
+    <color name="anim_purple_500">#a855f7</color>
+    <color name="anim_pink_500">#ec4899</color>
+    <color name="anim_cyan_500">#06b6d4</color>
+
+    <!-- Product Detail Page Colors -->
+    <color name="header_green">#1B5E20</color>
+    <color name="warning_yellow">#FFC107</color>
+    <color name="product_image_bg">#23B069</color>
+    <color name="product_image_placeholder">#23B069</color>
+    <color name="text_secondary">#9E9E9E</color>
+    <color name="star_filled">#FFD700</color>
+    <color name="star_outline">#E0E0E0</color>
+
+    <!-- Tailwind Colors for Florida Gradient -->
+    <color name="cyan_500">#06b6d4</color>
+    <color name="orange_400">#fb923c</color>
+    <color name="pink_500">#ec4899</color>
+    <color name="pink_400">#f472b6</color>
+    <color name="rose_300">#fda4af</color>
+    <color name="cyan_300">#67e8f9</color>
+    <color name="purple_500">#a855f7</color>
+    <color name="fuchsia_400">#e879f9</color>
+    <color name="teal_300">#5eead4</color>
+    <color name="emerald_400">#34d399</color>
+    <color name="yellow_300">#fde047</color>
+    <color name="blue_400">#60a5fa</color>
+    <color name="cyan_400">#22d3ee</color>
+    <color name="yellow_200">#fef08a</color>
+    <color name="orange_300">#fdba74</color>
+    <color name="blue_300">#93c5fd</color>
+    <color name="rose_200">#fecdd3</color>
+    <color name="emerald_300">#6ee7b7</color>
+    <color name="violet_400">#a78bfa</color>
+    <color name="violet_300">#c4b5fd</color>
+
+    <!-- Orb Colors (with opacity variants if needed, though Alpha will be handled in gradient/view) -->
+    <!-- Sun -->
+    <color name="sun_core">#99FDE047</color> <!-- Yellow 300 ~60% -->
+    <color name="sun_outer">#66FB923C</color> <!-- Orange 400 ~40% -->
+
+    <!-- Ocean -->
+    <color name="ocean_core">#8060A5FA</color> <!-- Blue 400 ~50% -->
+    <color name="ocean_outer">#4D22D3EE</color> <!-- Cyan 400 ~30% -->
+    
+    <!-- Sunset -->
+    <color name="sunset_core">#66F472B6</color> <!-- Pink 400 ~40% -->
+    <color name="sunset_outer">#4DFDA4AF</color> <!-- Rose 300 ~30% -->
+
+    <!-- Tropical -->
+    <color name="tropical_core">#6634D399</color> <!-- Emerald 400 ~40% -->
+    <color name="tropical_outer">#4D5EEAD4</color> <!-- Teal 300 ~30% -->
+
+    <!-- Purple -->
+    <color name="purple_core">#73A855F7</color> <!-- Purple 500 ~45% -->
+    <color name="purple_outer">#4DE879F9</color> <!-- Fuchsia 400 ~30% -->
+
+</resources>

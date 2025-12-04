@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Circle at 30% 20% - Orange/Yellow hint -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:centerX="0.3"
+                android:centerY="0.2"
+                android:startColor="#26FFB74D"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    
+    <!-- Circle at 70% 80% - Purple hint -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:centerX="0.7"
+                android:centerY="0.8"
+                android:startColor="#269333EA"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    
+    <!-- Circle at 50% 50% - Pink hint -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="400dp"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="#1AEC4899"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+</layer-list>

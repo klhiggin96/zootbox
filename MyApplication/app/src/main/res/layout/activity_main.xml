@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".MainActivity">
+
+    <!-- ================= BACKGROUND ================= -->
+    <ImageView
+        android:id="@+id/product_grid_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/product_grid_bg"
+        android:scaleType="centerCrop" />
+
+    <!-- Moving Overlay for Fake Motion -->
+    <ImageView
+        android:id="@+id/bg_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_overlay_gradient"
+        android:scaleType="centerCrop"
+        android:alpha="0.8" />
+
+
+    <!-- ================= CONTENT ================= -->
+
+    <!-- Product Grid (No Container) - Full Screen -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/product_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="260dp"
+        android:paddingBottom="24dp"
+        android:overScrollMode="never" />
+
+    <!-- Header Container with Gradient Fade -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_header_fade"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Header: ZOOTBOX Stacked Title -->
+        <include
+            android:id="@+id/zootbox_title"
+            layout="@layout/zootbox_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

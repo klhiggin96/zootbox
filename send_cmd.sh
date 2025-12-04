@@ -1,0 +1,1 @@
+su -c 'echo -e "\x13\x00\x00\x00\x00\x05\x18" > /dev/ttyUSB1'

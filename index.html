@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fellow Kids Card</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap');
+
+    :root {
+        --card-bg-top: #FFF875;
+        --card-bg-bot: #F0E0F5;
+        --accent-black: #000000;
+        --pill-yellow: #FFF566;
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Space Mono', monospace;
+        overflow: hidden;
+    }
+
+    /* Animated Background */
+    .bg {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg,
+            #1a0a2e 0%,
+            #16213e 25%,
+            #0f3460 50%,
+            #533483 75%,
+            #1a0a2e 100%);
+        overflow: hidden;
+        z-index: 0;
+    }
+
+    .bg-overlay {
+        position: absolute;
+        inset: -20%;
+        background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.15), transparent 60%),
+                    radial-gradient(circle at 70% 60%, rgba(138, 43, 226, 0.12), transparent 55%),
+                    radial-gradient(circle at 50% 80%, rgba(0, 191, 255, 0.10), transparent 50%);
+        filter: blur(60px);
+        mix-blend-mode: soft-light;
+        animation: drift 18s ease-in-out infinite alternate;
+        will-change: transform;
+    }
+
+    @keyframes drift {
+        from { transform: translate3d(-4%, -2%, 0) scale(1.05); }
+        to   { transform: translate3d(4%, 3%, 0) scale(1.1); }
+    }
+
+    /* Content Container */
+    .content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    /* Main Card Container */
+    .card {
+        position: relative;
+        width: 360px;
+        height: 460px;
+        background: linear-gradient(180deg, var(--card-bg-top) 30%, var(--card-bg-bot) 100%);
+        border-radius: 32px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    /* Top Abstract Typography */
+    .header-graphic {
+        width: 100%;
+        padding-top: 20px;
+        display: flex;
+        justify-content: center;
+        z-index: 1;
+    }
+
+    .header-svg {
+        width: 90%;
+        height: auto;
+        fill: var(--accent-black);
+    }
+
+    /* The Central Figure (Simulated 3D Gold Object) */
+    /* Note: In a real app, you would use an <img> tag here. 
+       I am using CSS to generate a placeholder gold shape. */
+    .figure-container {
+        flex-grow: 1;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 60px; 
+        z-index: 2;
+    }
+
+    .gold-figure {
+        width: 180px;
+        height: 240px;
+        background: radial-gradient(circle at 30% 30%, #FFF6B3, #D4AF37 40%, #8B5A00 85%);
+        border-radius: 80px 80px 60px 60px;
+        box-shadow: 
+            inset -10px -10px 30px rgba(0,0,0,0.3),
+            inset 10px 10px 30px rgba(255,255,255,0.8),
+            0 20px 30px rgba(0,0,0,0.2);
+        position: relative;
+    }
+    
+    /* Adding details to make it look like the hood figure */
+    .gold-figure::before {
+        content: '';
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 90px;
+        background: radial-gradient(circle at 30% 30%, #D4AF37, #8B5A00);
+        border-radius: 50%;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .eyes {
+        position: absolute;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 3;
+    }
+    .eye {
+        width: 12px;
+        height: 20px;
+        background: #D4AF37;
+        border: 2px solid #5e3a00;
+        border-radius: 4px;
+        box-shadow: inset 2px 2px 4px rgba(255,255,255,0.5);
+    }
+
+    /* Bottom Info Pill */
+    .info-pill {
+        z-index: 10;
+        width: 85%;
+        height: 50px;
+        background-color: var(--pill-yellow);
+        border-radius: 12px;
+        margin-bottom: 25px;
+        margin-top: auto; /* Pushes it to bottom */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 14px;
+        box-sizing: border-box;
+    }
+
+    /* Left side of pill */
+    .pill-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .icon-circle {
+        width: 24px;
+        height: 24px;
+        background: black;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .gear-icon {
+        width: 14px;
+        height: 14px;
+        fill: var(--pill-yellow);
+        animation: spin 10s linear infinite;
+    }
+
+    .meta-text {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--accent-black);
+        line-height: 1.2;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    /* Right side of pill (Logo) */
+    .pill-right {
+        text-align: right;
+    }
+
+    .brand-logo {
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 12px;
+        line-height: 0.85;
+        color: var(--accent-black);
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+    }
+
+    /* Keyframe for fun */
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+
+</style>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="bg">
+        <div class="bg-overlay"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="card">
+        <!-- Top Abstract Graphic (SVG Recreation) -->
+        <div class="header-graphic">
+            <svg class="header-svg" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
+                <!-- Stylized F -->
+                <path d="M10 10 H90 L80 30 H40 V40 H70 L60 60 H40 V70 L20 70 L30 50 L10 10 Z" />
+                <!-- Stylized E -->
+                <path d="M100 20 H150 L140 35 H120 V45 H140 L135 55 H120 V65 H150 L140 75 H90 L100 20 Z" />
+                <!-- Abstract Shapes -->
+                <path d="M160 20 H200 L230 20 L220 40 H180 L160 20 Z" />
+                <path d="M240 10 H280 V30 H260 L290 10 V40 H240 Z" />
+            </svg>
+        </div>
+
+        <!-- Center 3D Figure Placeholder -->
+        <div class="figure-container">
+            <div class="gold-figure">
+                <div class="eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Pill -->
+        <div class="info-pill">
+            <div class="pill-left">
+                <div class="icon-circle">
+                    <!-- Gear Icon SVG -->
+                    <svg class="gear-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" />
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M20 12L22 10L20 8L22 6L18 4L16 6L14 4L12 2L10 4L8 6L6 4L2 6L4 8L2 10L4 12L2 14L4 16L2 18L6 20L8 18L10 20L12 22L14 20L16 18L18 20L22 18L20 16L22 14L20 12ZM12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17Z"/>
+                    </svg>
+                </div>
+                <div class="meta-text">
+                    5 Years at<br>FellowKids
+                </div>
+            </div>
+            
+            <div class="pill-right">
+                <div class="brand-logo">
+                    Fellow<br>Kids
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+</body>
+</html>

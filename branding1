@@ -1,0 +1,290 @@
+{
+  "brand_foundation": {
+    "brand_name": "ZootBox",
+    "business_description": "Nightlife touchscreen vending machine company and SaaS platform selling vapes, disposable cameras, Zyns, cigarettes, and other nightlife essentials. We combine smart vending tech with an app ecosystem for the party scene.",
+    "personality_traits": [
+      "Confident/Unapologetic",
+      "Party-smart/Street-smart", 
+      "Chaotic/Energetic",
+      "Rebellious/Bold",
+      "Swagger-heavy/Premium"
+    ],
+    "emotional_response": {
+      "primary": "Excitement/Adrenaline (2 AM 'where to next' energy)",
+      "secondary": "FOMO/Status (local legend, being part of the scene)"
+    },
+    "competitive_landscape": "Basic branded vape machine UIs, nightlife tech brands",
+    "core_energy": "Sun-soaked, neon-lit, bass-heavy Florida nightlife meets college-town chaos. Kodak Black swagger, 305 attitude, Spring Break lawlessness - polished enough to feel like a real brand."
+  },
+
+  "color_system": {
+    "primary_colors": {
+      "florida_gold": {
+        "hex": "#FFD700",
+        "rgb": "255, 215, 0",
+        "usage": "Primary brand color - luxury flex, CTAs, premium accents",
+        "description": "Rich, warm, borderline gaudy - like a grill reflecting sunlight"
+      },
+      "neon_pink": {
+        "hex": "#FF10F0",
+        "rgb": "255, 16, 240",
+        "usage": "High-energy accents, notifications, party moments",
+        "description": "Miami Vice but louder - pure adrenaline"
+      },
+      "teal_305": {
+        "hex": "#00FFE5",
+        "rgb": "0, 255, 229",
+        "usage": "Secondary brand color, interactive elements, Miami identity",
+        "description": "South Beach water meets neon signs"
+      }
+    },
+    
+    "accent_colors": {
+      "deep_night_purple": {
+        "hex": "#6B00ED",
+        "rgb": "107, 0, 237",
+        "usage": "Backgrounds, rave energy, depth layers",
+        "description": "Club lighting, bass drop moments"
+      },
+      "palm_green": {
+        "hex": "#00FF88",
+        "rgb": "0, 255, 136",
+        "usage": "Tropical accents, success states, palm tree motifs",
+        "description": "Neon palm trees glowing in the night"
+      }
+    },
+
+    "neutrals": {
+      "rich_black": {
+        "hex": "#0A0A0A",
+        "rgb": "10, 10, 10",
+        "usage": "Primary background - nightclub darkness"
+      },
+      "asphalt_gray": {
+        "hex": "#1A1A1A",
+        "rgb": "26, 26, 26",
+        "usage": "Secondary backgrounds, card surfaces"
+      },
+      "wet_concrete": {
+        "hex": "#2D2D2D",
+        "rgb": "45, 45, 45",
+        "usage": "Borders, dividers, subtle depth"
+      },
+      "neon_white": {
+        "hex": "#FFFFFF",
+        "rgb": "255, 255, 255",
+        "usage": "Primary text on dark, flash photography moments"
+      },
+      "glow_gray": {
+        "hex": "#B8B8B8",
+        "rgb": "184, 184, 184",
+        "usage": "Secondary text, disabled states"
+      }
+    },
+
+    "gradients": {
+      "vaporwave_sunset": {
+        "colors": ["#FF10F0", "#FFD700", "#FF10F0"],
+        "direction": "45deg",
+        "usage": "Hero sections, premium features"
+      },
+      "miami_night": {
+        "colors": ["#6B00ED", "#00FFE5"],
+        "direction": "180deg",
+        "usage": "Backgrounds, immersive sections"
+      },
+      "gold_foil": {
+        "colors": ["#FFD700", "#FFA500", "#FFD700"],
+        "direction": "90deg",
+        "usage": "Premium badges, VIP features"
+      }
+    },
+
+    "palette_rules": {
+      "total_colors": 10,
+      "contrast_compliance": "WCAG AA for text, prioritize vibe over strict AA for decorative elements",
+      "avoid": [
+        "Corporate blues (IBM, LinkedIn vibes)",
+        "Muted pastels (kills the energy)",
+        "Medical whites (too sterile)",
+        "Earth tones (wrong climate)"
+      ],
+      "mood": "Sun-soaked luxury meets illegal rave energy - loud, confident, unapologetic, with enough polish to look expensive not cheap"
+    }
+  },
+
+  "typography_system": {
+    "headings": {
+      "font_family": "Druk Wide Bold, Impact, Arial Black",
+      "description": "Heavy, condensed, aggressive - concert poster energy",
+      "weights": [700, 900],
+      "usage": "Headlines, hero text, CTAs",
+      "character": "Screams confidence, cuts through noise",
+      "fallback": "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    },
+    
+    "display": {
+      "font_family": "Archivo Black, Bebas Neue, Oswald",
+      "description": "Tall, bold, athletic - jersey numbers and club flyers",
+      "weights": [400, 700],
+      "usage": "Large numbers, stats, attention-grabbers",
+      "character": "Street swagger meets sports energy"
+    },
+
+    "body": {
+      "font_family": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      "description": "Clean, modern, readable - doesn't fight the chaos",
+      "weights": [400, 600, 700],
+      "usage": "Body text, UI elements, descriptions",
+      "character": "Professional backbone under wild branding"
+    },
+
+    "accent": {
+      "font_family": "Space Grotesk, 'SF Mono', Courier New, monospace",
+      "description": "Techy, futuristic - vending machine digital displays",
+      "weights": [400, 700],
+      "usage": "Prices, product codes, tech specs",
+      "character": "Digital rave aesthetic"
+    },
+
+    "typography_rules": {
+      "hierarchy": "Aggressive scale jumps (48px → 24px → 16px), no subtlety",
+      "line_height": "Tight on headlines (1.1), generous on body (1.6)",
+      "letter_spacing": "Wide tracking on uppercase display (+0.1em)",
+      "text_effects": "Neon glow, stroke outlines, shadow layers",
+      "never": "Script fonts, serif fonts, rounded bubbly fonts"
+    }
+  },
+
+  "visual_style": {
+    "style_adjectives": [
+      "Neon-drenched",
+      "Bass-heavy",
+      "Swagger-confident",
+      "Chaotically organized",
+      "Premium-reckless"
+    ],
+
+    "border_radius": {
+      "buttons_cards": "8px - 12px (slightly rounded, not corporate)",
+      "pills_badges": "999px (full rounded for tags/pills)",
+      "sharp_accents": "0px for edgy elements, photo frames",
+      "philosophy": "Mix sharp and rounded - chaos with intention"
+    },
+
+    "spacing": {
+      "density": "Balanced with breathing room",
+      "base_unit": "8px grid system",
+      "sections": "Generous (80px - 120px) - club atmosphere needs space",
+      "components": "Tight (16px - 24px) - pack energy without claustrophobia",
+      "philosophy": "Airy enough to feel premium, tight enough to stay energetic"
+    },
+
+    "shadows_depth": {
+      "approach": "Pronounced neon glows and dramatic shadows",
+      "glow_effect": "0 0 20px rgba(color, 0.6) - neon sign energy",
+      "card_shadow": "0 8px 32px rgba(0, 0, 0, 0.8) - floating in darkness",
+      "inset_glow": "inset 0 0 20px rgba(color, 0.3) - backlit screens",
+      "text_shadow": "0 0 10px rgba(color, 0.8) - neon tube lettering",
+      "philosophy": "Light bends around everything - club lighting physics"
+    },
+
+    "buttons_elements": {
+      "primary_style": "Filled solids with glow effects (Florida Gold with shadow)",
+      "secondary_style": "Outlined ghost with neon stroke (2px border + glow)",
+      "states": {
+        "hover": "Intensify glow, slight scale (1.05)",
+        "active": "Compress slightly (0.95), max glow",
+        "disabled": "Desaturate, remove glow, 40% opacity"
+      },
+      "philosophy": "Tactile, responsive, bass-drop satisfying"
+    },
+
+    "texture_motifs": {
+      "patterns": [
+        "Palm trees with glowing neon outlines",
+        "Wet asphalt reflections (gradients + blur)",
+        "Neon grid overlays (perspective warped)",
+        "Gold foil texture overlays",
+        "Flash photography light leaks",
+        "College party doodles (solo cups, wristbands, speakers)",
+        "Vaporwave grid perspectives"
+      ],
+      "usage": "Backgrounds, section dividers, Easter eggs",
+      "intensity": "Subtle enough not to distract, loud enough to notice"
+    },
+
+    "animation_energy": {
+      "timing": "Snappy (200ms - 400ms), no sluggish animations",
+      "easing": "Cubic-bezier bounces - 808 kick drum physics",
+      "effects": [
+        "DJ light sweeps across sections",
+        "Pulse on beat (simulated rhythm)",
+        "Neon flicker on load",
+        "Parallax scrolling (club depth)",
+        "Glow intensity breathing"
+      ],
+      "philosophy": "Everything moves like you're feeling the bass"
+    }
+  },
+
+  "constraints_requirements": {
+    "never_do": [
+      "No gradients that look 'corporate' (LinkedIn vibes)",
+      "No muted or desaturated colors (kills energy)",
+      "No script/handwriting fonts (wrong vibe entirely)",
+      "No rounded bubbly fonts (too soft)",
+      "No pure white backgrounds (blinds users, wrong atmosphere)",
+      "No subtle animations (go hard or go home)",
+      "No 'professional corporate' layouts (we're nightlife, not SaaS)",
+      "No medical/clinical aesthetics (sterile = dead)"
+    ],
+
+    "accessibility": {
+      "wcag_compliance": "AA for critical text, prioritize vibe for decorative elements",
+      "approach": "High contrast on dark backgrounds, readable body text, decorative neon can bend rules",
+      "text_contrast": "White (#FFFFFF) on Rich Black (#0A0A0A) = 19.35:1 (AAA)",
+      "color_blindness": "Test Florida Gold vs Neon Pink distinction, ensure UI works without color alone"
+    },
+
+    "platforms": {
+      "primary": "Touchscreen vending machine UI (10-15 inch displays)",
+      "secondary": "Mobile app (iOS/Android)",
+      "tertiary": "Web dashboard (desktop admin)",
+      "considerations": "Touch targets 44px minimum, night-mode optimized, works in bright club lighting"
+    },
+
+    "industry_standards": {
+      "age_verification": "Tobacco/nicotine product regulations (21+)",
+      "vending_compliance": "ADA accessibility for physical machines",
+      "payment_security": "PCI DSS for card transactions",
+      "content_guidelines": "Promote responsibly, no targeting minors, tobacco warnings"
+    },
+
+    "brand_guardrails": {
+      "stay_authentic": "Florida energy is core - don't dilute for 'broader appeal'",
+      "premium_not_cheap": "Loud but expensive-looking - Kodak swagger not carnival",
+      "party_smart": "Chaotic but intentional - every choice has purpose",
+      "local_legend": "Feels like 'if you know, you know' - insider status"
+    }
+  },
+
+  "implementation_notes": {
+    "design_system_structure": "Tokens → Components → Patterns → Pages",
+    "priority_build_order": [
+      "Color palette + contrast testing",
+      "Typography scale + loading",
+      "Button system + states",
+      "Card components with glows",
+      "Touchscreen navigation patterns",
+      "Product grid layouts",
+      "Checkout flow (critical path)"
+    ],
+    "tech_stack_suggestions": {
+      "frontend": "React Native (cross-platform touch UI)",
+      "styling": "Tailwind CSS with custom config (fast, token-based)",
+      "animations": "Framer Motion (smooth 60fps)",
+      "fonts": "Self-hosted WOFF2 (reliability in kiosk mode)"
+    }
+  }
+}
