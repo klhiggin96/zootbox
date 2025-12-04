@@ -4,81 +4,191 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient"
-    android:padding="24dp"
+    android:background="@color/black"
     tools:context=".MainActivity">
 
-    <!-- Header: Floating Glass -->
-    <TextView
-        android:id="@+id/tv_header"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@null"
-        android:fontFamily="@font/oswald"
-        android:text="ZOOTBOX"
-        android:textColor="@color/neon_white"
-        android:textSize="56sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1"
-        android:shadowColor="@color/neon_pink"
-        android:shadowDx="0"
-        android:shadowDy="0"
-        android:shadowRadius="25"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <!-- ================= BACKGROUND LAYERS ================= -->
+    <FrameLayout
+        android:id="@+id/background_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <!-- Dynamic Product Grid -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/product_recycler"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp"
-        android:layoutAnimation="@anim/layout_animation_fall_down"
-        app:layout_constraintBottom_toTopOf="@+id/status_container"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tv_header" />
+        <!-- Layer 1: Cyan-Orange-Pink (Initial Opacity 1) -->
+        <ImageView
+            android:id="@+id/bg_layer_1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bg_grad_layer_1"
+            android:scaleType="centerCrop"
+            android:alpha="1.0" />
 
-    <!-- Status Bar: Glass Pill -->
+        <!-- Layer 2: Pink-Rose-Cyan (Initial Opacity 0) -->
+        <ImageView
+            android:id="@+id/bg_layer_2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bg_grad_layer_2"
+            android:scaleType="centerCrop"
+            android:alpha="0.0" />
+
+        <!-- Layer 3: Purple-Fuchsia-Teal (Initial Opacity 0) -->
+        <ImageView
+            android:id="@+id/bg_layer_3"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bg_grad_layer_3"
+            android:scaleType="centerCrop"
+            android:alpha="0.0" />
+
+        <!-- Layer 4: Emerald-Yellow-Purple (Initial Opacity 0) -->
+        <ImageView
+            android:id="@+id/bg_layer_4"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bg_grad_layer_4"
+            android:scaleType="centerCrop"
+            android:alpha="0.0" />
+
+        <!-- Layer 5: Blue-Pink-Emerald (Initial Opacity 0) -->
+        <ImageView
+            android:id="@+id/bg_layer_5"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/bg_grad_layer_5"
+            android:scaleType="centerCrop"
+            android:alpha="0.0" />
+    </FrameLayout>
+
+    <!-- ================= ORBS LAYOUT ================= -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/status_container"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_glass_panel"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        android:id="@+id/orbs_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/lbl_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="@font/space_grotesk"
-            android:text="STATUS"
-            android:textColor="@color/teal_305"
-            android:textSize="12sp"
-            android:letterSpacing="0.2"
+        <!-- Sun Orb: Top 5%, Right 15% (Bias: V 0.05, H 0.85) -->
+        <ImageView
+            android:id="@+id/orb_sun"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:src="@drawable/orb_sun"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_bias="0.05"
+            app:layout_constraintHorizontal_bias="0.85" />
 
-        <TextView
-            android:id="@+id/status_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:fontFamily="@font/inter"
-            android:text="SYSTEM READY"
-            android:textColor="@color/neon_white"
-            android:textSize="12sp"
-            app:layout_constraintStart_toEndOf="@id/lbl_status"
+        <!-- Ocean Orb: Bottom -10%, Left -5% (Bias: V 1.1, H -0.05 -> clamped, use margins/translation) -->
+        <!-- Using bias 1.0 (bottom) and 0.0 (left) with negative margins or translation in code -->
+        <!-- Or roughly position it -->
+        <ImageView
+            android:id="@+id/orb_ocean"
+            android:layout_width="600dp"
+            android:layout_height="600dp"
+            android:src="@drawable/orb_ocean"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:translationX="-30dp"
+            android:translationY="60dp" />
+
+        <!-- Sunset Orb: Top 10%, Left -10% -->
+        <ImageView
+            android:id="@+id/orb_sunset"
+            android:layout_width="500dp"
+            android:layout_height="500dp"
+            android:src="@drawable/orb_sunset"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            android:translationX="-50dp"
+            android:translationY="50dp" />
+
+        <!-- Tropical Orb: Top 40%, Right -5% -->
+        <ImageView
+            android:id="@+id/orb_tropical"
+            android:layout_width="400dp"
+            android:layout_height="400dp"
+            android:src="@drawable/orb_tropical"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_bias="0.4"
+            android:translationX="20dp" />
+
+        <!-- Purple Orb: Bottom 20%, Right 20% -->
+        <ImageView
+            android:id="@+id/orb_purple"
+            android:layout_width="450dp"
+            android:layout_height="450dp"
+            android:src="@drawable/orb_purple"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintVertical_bias="0.8"
+            app:layout_constraintHorizontal_bias="0.8" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- ================= OVERLAYS ================= -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_depth_overlay"
+        android:scaleType="centerCrop" />
+
+    <ImageView
+        android:id="@+id/mesh_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/bg_mesh_overlay"
+        android:scaleType="centerCrop"
+        android:alpha="0.8" />
+
+    <!-- Noise Texture (Optional, skipping specialized SVG filter for now, or using a simple tileable noise if available. 
+         Assuming standard noise pattern not easily available in vectors, keeping it clean or semi-transparent overlay.) -->
+
+    <!-- ================= CONTENT ================= -->
+
+    <!-- Product Grid (No Container) - Full Screen -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/product_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="200dp"
+        android:paddingBottom="24dp"
+        android:overScrollMode="never" />
+
+    <!-- Header Container with Gradient Fade -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_header_fade"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Header: ZOOTBOX -->
+        <TextView
+            android:id="@+id/tv_header"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="@font/y2k_brutalism_family"
+            android:text="ZOOTBOX"
+            android:gravity="start|center_vertical"
+            android:textColor="@color/white"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="48sp"
+            android:autoSizeMaxTextSize="120sp"
+            android:autoSizeStepGranularity="2sp"
+            android:maxLines="1"
+            android:textStyle="normal" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

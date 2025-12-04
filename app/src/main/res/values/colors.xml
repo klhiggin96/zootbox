@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
+    <!-- <color name="purple_500">#FF6200EE</color> Duplicated -->
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
@@ -66,4 +66,48 @@
     <color name="text_secondary">#9E9E9E</color>
     <color name="star_filled">#FFD700</color>
     <color name="star_outline">#E0E0E0</color>
+
+    <!-- Tailwind Colors for Florida Gradient -->
+    <color name="cyan_500">#06b6d4</color>
+    <color name="orange_400">#fb923c</color>
+    <color name="pink_500">#ec4899</color>
+    <color name="pink_400">#f472b6</color>
+    <color name="rose_300">#fda4af</color>
+    <color name="cyan_300">#67e8f9</color>
+    <color name="purple_500">#a855f7</color>
+    <color name="fuchsia_400">#e879f9</color>
+    <color name="teal_300">#5eead4</color>
+    <color name="emerald_400">#34d399</color>
+    <color name="yellow_300">#fde047</color>
+    <color name="blue_400">#60a5fa</color>
+    <color name="cyan_400">#22d3ee</color>
+    <color name="yellow_200">#fef08a</color>
+    <color name="orange_300">#fdba74</color>
+    <color name="blue_300">#93c5fd</color>
+    <color name="rose_200">#fecdd3</color>
+    <color name="emerald_300">#6ee7b7</color>
+    <color name="violet_400">#a78bfa</color>
+    <color name="violet_300">#c4b5fd</color>
+
+    <!-- Orb Colors (with opacity variants if needed, though Alpha will be handled in gradient/view) -->
+    <!-- Sun -->
+    <color name="sun_core">#99FDE047</color> <!-- Yellow 300 ~60% -->
+    <color name="sun_outer">#66FB923C</color> <!-- Orange 400 ~40% -->
+
+    <!-- Ocean -->
+    <color name="ocean_core">#8060A5FA</color> <!-- Blue 400 ~50% -->
+    <color name="ocean_outer">#4D22D3EE</color> <!-- Cyan 400 ~30% -->
+    
+    <!-- Sunset -->
+    <color name="sunset_core">#66F472B6</color> <!-- Pink 400 ~40% -->
+    <color name="sunset_outer">#4DFDA4AF</color> <!-- Rose 300 ~30% -->
+
+    <!-- Tropical -->
+    <color name="tropical_core">#6634D399</color> <!-- Emerald 400 ~40% -->
+    <color name="tropical_outer">#4D5EEAD4</color> <!-- Teal 300 ~30% -->
+
+    <!-- Purple -->
+    <color name="purple_core">#73A855F7</color> <!-- Purple 500 ~45% -->
+    <color name="purple_outer">#4DE879F9</color> <!-- Fuchsia 400 ~30% -->
+
 </resources>

@@ -8,6 +8,9 @@
     app:cardCornerRadius="32dp"
     app:cardElevation="8dp"
     app:cardPreventCornerOverlap="false"
+    app:strokeColor="#50FFFFFF"
+    app:strokeWidth="1dp"
+    android:foreground="@drawable/bg_glass_shine"
     android:backgroundTint="@null">
 
     <androidx.constraintlayout.widget.ConstraintLayout
