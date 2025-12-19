@@ -89,6 +89,23 @@
     <color name="violet_400">#a78bfa</color>
     <color name="violet_300">#c4b5fd</color>
 
+    <!-- Mockup Colors (ZOOTBOX Grid) -->
+    <color name="grid_primary">#fb7185</color> <!-- Coral (Rose 400) -->
+    <color name="grid_bg_light">#e5e7eb</color>
+    <color name="grid_bg_dark">#0f172a</color>
+    
+    <color name="grid_card_1_light">#8b5cf6</color> <!-- Purple (Violet 500) -->
+    <color name="grid_card_1_dark">#4c1d95</color> <!-- Dark Purple -->
+    
+    <color name="grid_card_3_light">#4ade80</color> <!-- Light Green (Green 400) -->
+    <color name="grid_card_3_dark">#14532d</color> <!-- Dark Green -->
+    
+    <color name="grid_card_4_light">#38bdf8</color> <!-- Light Blue (Sky 400) -->
+    <color name="grid_card_4_dark">#0c4a6e</color> <!-- Dark Blue (Sky 900) -->
+    
+    <!-- Button text colors -->
+    <color name="text_purple_200">#E9D5FF</color>
+
     <!-- Orb Colors (with opacity variants if needed, though Alpha will be handled in gradient/view) -->
     <!-- Sun -->
     <color name="sun_core">#99FDE047</color> <!-- Yellow 300 ~60% -->

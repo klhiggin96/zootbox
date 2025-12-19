@@ -1,13 +1,9 @@
 package com.example.myapplication
 
-import android.animation.Keyframe
 import android.animation.ObjectAnimator
-import android.animation.PropertyValuesHolder
-import android.animation.ValueAnimator
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -15,19 +11,27 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import kotlin.math.sin
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var productRecycler: RecyclerView
-    private lateinit var bgOverlay: ImageView
-    
+    private lateinit var rootLayout: ConstraintLayout
+    private lateinit var section1: ConstraintLayout
+    private lateinit var section2: ConstraintLayout
+    private lateinit var section3: ConstraintLayout
+    private lateinit var section4: ConstraintLayout
+    private lateinit var darkModeToggle: FrameLayout
+
+    private var isDarkMode = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -36,9 +40,24 @@ class MainActivity : AppCompatActivity() {
         setupFullScreen()
 
         // Initialize Views
-        productRecycler = findViewById(R.id.product_recycler)
-        bgOverlay = findViewById(R.id.bg_overlay)
+        rootLayout = findViewById(R.id.root_layout)
+        section1 = findViewById(R.id.section1)
+        section2 = findViewById(R.id.section2)
+        section3 = findViewById(R.id.section3)
+        section4 = findViewById(R.id.section4)
+        darkModeToggle = findViewById(R.id.darkModeToggle)
+
+        // Setup Dark Mode Toggle
+        darkModeToggle.setOnClickListener {
+            toggleDarkMode()
+        }
         
+        // Setup Navigation Buttons
+        findViewById<Button>(R.id.btn_s1).setOnClickListener { openCategory("ZyNS") }
+        findViewById<Button>(R.id.btn_s2).setOnClickListener { openCategory("VAPES") }
+        findViewById<Button>(R.id.btn_s3).setOnClickListener { openCategory("CIGERATES") }
+        findViewById<Button>(R.id.btn_s4).setOnClickListener { openCategory("ZOOTBOX LEGENDARY LOOT") }
+
         // Start hardware service
         try {
             val serviceIntent = Intent(this, com.example.myapplication.hardware.HardwareService::class.java)
@@ -52,49 +71,70 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
 
-        // Setup ZootBox Product Grid (2 Columns)
-        productRecycler.layoutManager = GridLayoutManager(this, 2)
-
-        // Performance optimizations
-        productRecycler.setHasFixedSize(true)
-        productRecycler.setItemViewCacheSize(20)
-
         Toast.makeText(this, "USB Connection Active", Toast.LENGTH_LONG).show()
+        
+        // Setup simple animations for entrance
+        setupEntranceAnimations()
+    }
+    
+    private fun openCategory(categoryName: String) {
+        val intent = Intent(this, ProductGridActivity::class.java)
+        intent.putExtra("category_name", categoryName)
+        startActivity(intent)
+    }
+    
+    private fun toggleDarkMode() {
+        isDarkMode = !isDarkMode
+        
+        // Define colors
+        val bgLight = ContextCompat.getColor(this, R.color.grid_bg_light)
+        val bgDark = ContextCompat.getColor(this, R.color.grid_bg_dark)
+        
+        // Section 1: Purple
+        val s1Light = ContextCompat.getColor(this, R.color.grid_card_1_light)
+        val s1Dark = ContextCompat.getColor(this, R.color.grid_card_1_dark)
+        
+        // Section 2: Coral (Primary) -> Red 900
+        val s2Light = ContextCompat.getColor(this, R.color.grid_primary)
+        val s2Dark = Color.parseColor("#7f1d1d") // Red 900
+        
+        // Section 3: Green
+        val s3Light = ContextCompat.getColor(this, R.color.grid_card_3_light)
+        val s3Dark = ContextCompat.getColor(this, R.color.grid_card_3_dark)
+        
+        // Section 4: Blue
+        val s4Light = ContextCompat.getColor(this, R.color.grid_card_4_light)
+        val s4Dark = ContextCompat.getColor(this, R.color.grid_card_4_dark)
 
-        // Create fixed list of 10 slots mapping to Hardware Row 1, Cols 1-10
-        // Plus one Digital Donation item
-        // Note: videoFileName assumes files are in /storage/emulated/0/Movies/ZootBox/
-        val products = listOf(
-            Product("01", "ZOOT VAPE X", "1", "1", R.drawable.zyn, price = 29.99, ageRestriction = 21, videoFileName = "zoot_vape_x.mp4"),
-            Product("02", "NIGHT OWL CAM", "1", "2", R.drawable.zyn, price = 15.99, videoFileName = "night_owl_cam.mp4"),
-            Product("03", "ZYN CITRUS", "1", "3", R.drawable.img_zyn_citrus, backgroundRes = R.drawable.bg_zyn_citrus_gradient, price = 8.99, ageRestriction = 21, scaleX = 0.95f, scaleY = 0.95f, videoFileName = "zyn_citrus.mp4"),
-            Product("04", "RED BULL 12OZ", "1", "4", R.drawable.zyn, price = 4.99, videoFileName = "red_bull.mp4"),
-            Product("05", "LIGHTER GOLD", "1", "5", R.drawable.zyn, price = 2.99, ageRestriction = 18, videoFileName = "lighter_gold.mp4"),
-            Product("06", "ROLLING PAPERS", "1", "6", R.drawable.zyn, price = 3.99, ageRestriction = 18, videoFileName = "rolling_papers.mp4"),
-            Product("07", "ENERGY SHOT", "1", "7", R.drawable.zyn, price = 3.49, videoFileName = "energy_shot.mp4"),
-            Product("08", "GUM MINT", "1", "8", R.drawable.zyn, price = 1.99, videoFileName = "gum_mint.mp4"),
-            Product("09", "CONDOM PACK", "1", "9", R.drawable.zyn, price = 5.99, videoFileName = "condom_pack.mp4"),
-            Product("10", "WATER 500ML", "1", "10", R.drawable.zyn, price = 2.49, videoFileName = "water.mp4"),
-            // Digital Item
-            Product("11", "Donate to the Autism Fund", "0", "0", R.drawable.img_donate, isDigital = true, price = 5.00, videoFileName = "donate.mp4")
-        )
+        // Apply
+        rootLayout.setBackgroundColor(if (isDarkMode) bgDark else bgLight)
+        
+        section1.backgroundTintList = ColorStateList.valueOf(if (isDarkMode) s1Dark else s1Light)
+        section2.backgroundTintList = ColorStateList.valueOf(if (isDarkMode) s2Dark else s2Light)
+        section3.backgroundTintList = ColorStateList.valueOf(if (isDarkMode) s3Dark else s3Light)
+        section4.backgroundTintList = ColorStateList.valueOf(if (isDarkMode) s4Dark else s4Light)
+        
+        // In a real app, we would also update text colors here by finding all TextViews 
+        // or using a proper Theme attribute system.
+        // For this mockup, the background change is the main visual indicator.
+    }
 
-        val adapter = ProductAdapter(products) { product ->
-            // Launch Product Detail Activity
-            val intent = Intent(this, ProductDetailActivity::class.java)
-            intent.putExtra("name", product.name)
-            intent.putExtra("row", product.row)
-            intent.putExtra("col", product.col)
-            intent.putExtra("imageRes", product.imageRes)
-            intent.putExtra("backgroundRes", product.backgroundRes)
-            intent.putExtra("isDigital", product.isDigital)
-            intent.putExtra("price", product.price)
-            intent.putExtra("ageRestriction", product.ageRestriction ?: -1)
-            intent.putExtra("desc", if(product.isDigital) "Support the cause. All proceeds go directly to the Autism Fund." else "Premium nightlife selection. High quality.")
-            intent.putExtra("videoFileName", product.videoFileName)
-            startActivity(intent)
+    private fun setupEntranceAnimations() {
+        // Slide up animation for sections
+        val sections = listOf(section4, section3, section2, section1) // Bottom to top
+        
+        sections.forEachIndexed { index, view ->
+            view.alpha = 0f
+            view.translationY = 100f
+            
+            view.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(600)
+                .setStartDelay(index * 150L) // Staggered
+                .setInterpolator(AccelerateDecelerateInterpolator())
+                .start()
         }
-        productRecycler.adapter = adapter
     }
 
     private fun setupFullScreen() {

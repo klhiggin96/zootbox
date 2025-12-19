@@ -39,10 +39,21 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-        
+
+        <activity
+            android:name=".ProductGridActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:configChanges="orientation|screenSize" />
+
         <activity android:name=".ProductDetailActivity" />
         <activity android:name=".IdScanActivity" />
-        
+        <activity
+            android:name=".ScreensaverActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.MyApplication" />
+
         <service
             android:name=".hardware.HardwareService"
             android:enabled="true"

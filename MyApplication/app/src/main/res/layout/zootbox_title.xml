@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ZOOTBOX Title with Continuous Animated Gradient -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="16dp"
-    android:paddingBottom="0dp">
+    android:paddingTop="20dp"
+    android:paddingBottom="40dp">
 
-    <com.example.myapplication.ZootBoxGradientView
-        android:id="@+id/zootbox_gradient_view"
+    <ImageView
+        android:id="@+id/title_image"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="16dp" />
+        android:layout_height="300dp"
+        android:src="@drawable/title"
+        android:scaleType="centerInside"
+        android:contentDescription="ZootBox Title" />
 
 </FrameLayout>
