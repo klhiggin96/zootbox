@@ -62,7 +62,7 @@ class ProductGridActivity : AppCompatActivity() {
         bgVideoView2 = findViewById(R.id.bg_video_view_2)
 
         // Setup back button
-        val backButton = findViewById<MaterialButton>(R.id.backButton)
+        val backButton = findViewById<ImageView>(R.id.backButton)
         backButton.bringToFront() // Ensure button is on top of all views
         backButton.setOnClickListener {
             finish() // Return to CategorySelectionActivity

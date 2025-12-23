@@ -13,4 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
-nul
+nul.claude/settings.local.json

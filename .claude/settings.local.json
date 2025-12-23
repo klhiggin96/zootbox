@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(adb install:*)",
+      "Bash(cp:*)",
+      "Bash(ffprobe:*)",
+      "Bash(adb push:*)",
+      "Bash(adb shell:*)",
+      "Bash(MSYS_NO_PATHCONV=1 adb push:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(adb logcat:*)",
+      "Bash(timeout 10 adb logcat:*)",
+      "Bash(adb uninstall:*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(adb devices:*)",
+      "Bash(timeout 45 adb logcat:*)",
+      "Bash(.gradlew assembleDebug:*)",
+      "Skill(frontend-design)",
+      "Skill(frontend-design:frontend-design)",
+      "Bash(git restore:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

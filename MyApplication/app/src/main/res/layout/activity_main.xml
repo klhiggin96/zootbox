@@ -21,11 +21,34 @@
         app:layout_constraintEnd_toEndOf="parent">
         
         <ImageView
+            android:id="@+id/orbIcon"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/orb_sun"
             app:tint="@color/white" />
     </FrameLayout>
+
+    <!-- Guidelines for 25% visible height sections -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.25" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.50" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.75" />
 
     <!-- SECTION 4 (Bottom Layer) -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -35,17 +58,37 @@
         android:layout_marginTop="-96dp"
         android:paddingTop="96dp"
         android:background="@color/grid_card_4_light"
-        app:layout_constraintTop_toBottomOf="@id/section3"
+        app:layout_constraintTop_toTopOf="@id/guideline3"
         app:layout_constraintBottom_toBottomOf="parent">
+
+        <!-- DEV: Container 4 Label -->
+        <TextView
+            android:id="@+id/devLabel4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4"
+            android:textSize="36sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/space_mono"
+            android:textStyle="bold"
+            android:background="#80000000"
+            android:padding="12dp"
+            android:elevation="999dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_margin="8dp"
+            android:layout_marginTop="104dp" />
 
         <!-- Watermark -->
         <TextView
+            android:id="@+id/watermark4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ZOOTBOX"
             android:fontFamily="@font/oswald"
-            android:textSize="140sp"
-            android:textColor="#0DFFFFFF"
+            android:textSize="150sp"
+            android:letterSpacing="0.08"
+            android:textColor="#1AFFFFFF"
             android:textStyle="bold"
             android:includeFontPadding="false"
             app:layout_constraintStart_toStartOf="parent"
@@ -53,67 +96,18 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <!-- Content Grid -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="5">
-            
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="3"
-                android:orientation="vertical"
-                android:gravity="center_vertical"
-                android:paddingStart="48dp">
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZOOTBOX"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="14sp"
-                    android:letterSpacing="0.1"
-                    android:textColor="#0c4a6e"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZOOTBOX"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="48sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$180.00"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="60sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_s4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ADD TO BAG"
-                    android:textColor="#0c4a6e"
-                    android:backgroundTint="@color/white"
-                    android:layout_marginTop="16dp" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2"
-                android:src="@drawable/img_category_zyns"
-                android:padding="32dp"
-                android:scaleType="fitCenter" />
-        </LinearLayout>
+        <!-- Button -->
+        <Button
+            android:id="@+id/btn_s4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shop Now"
+            android:textColor="@color/grid_card_4_light"
+            android:backgroundTint="@color/white"
+            android:layout_marginBottom="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- SECTION 3 (Layer 2) -->
@@ -126,16 +120,36 @@
         android:background="@drawable/bg_curve_bottom_left"
         android:backgroundTint="@color/grid_card_3_light"
         android:elevation="10dp"
-        app:layout_constraintTop_toBottomOf="@id/section2"
-        app:layout_constraintHeight_percent="0.4"> 
-        
+        app:layout_constraintTop_toTopOf="@id/guideline2"
+        app:layout_constraintBottom_toBottomOf="@id/guideline3">
+
+        <!-- DEV: Container 3 Label -->
+        <TextView
+            android:id="@+id/devLabel3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3"
+            android:textSize="36sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/space_mono"
+            android:textStyle="bold"
+            android:background="#80000000"
+            android:padding="12dp"
+            android:elevation="999dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_margin="8dp"
+            android:layout_marginTop="104dp" />
+
         <!-- Watermark -->
         <TextView
+            android:id="@+id/watermark3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ZOOTBOX"
             android:fontFamily="@font/oswald"
-            android:textSize="140sp"
+            android:textSize="150sp"
+            android:letterSpacing="0.08"
             android:textColor="#0D000000"
             android:textStyle="bold"
             android:includeFontPadding="false"
@@ -144,56 +158,31 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="5">
-            
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="3"
-                android:orientation="vertical"
-                android:gravity="center_vertical"
-                android:paddingStart="48dp">
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZOOTBOX"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="48sp"
-                    android:textColor="#0D0D12"
-                    android:textStyle="bold" />
+        <!-- Title Image -->
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/cigs"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            app:layout_constraintWidth_percent="0.98"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$150.15"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="60sp"
-                    android:textColor="#0D0D12"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_s3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="DETAILS"
-                    android:textColor="@color/white"
-                    android:backgroundTint="#0D0D12"
-                    android:layout_marginTop="16dp" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2"
-                android:src="@drawable/img_category_cigs"
-                android:padding="32dp"
-                android:scaleType="fitCenter" />
-        </LinearLayout>
+        <!-- Button -->
+        <Button
+            android:id="@+id/btn_s3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shop Now"
+            android:textColor="@color/grid_card_3_light"
+            android:backgroundTint="@color/white"
+            android:layout_marginBottom="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -207,16 +196,36 @@
         android:background="@drawable/bg_curve_bottom_left"
         android:backgroundTint="@color/grid_primary"
         android:elevation="20dp"
-        app:layout_constraintTop_toBottomOf="@id/section1"
-        app:layout_constraintHeight_percent="0.4">
+        app:layout_constraintTop_toTopOf="@id/guideline1"
+        app:layout_constraintBottom_toBottomOf="@id/guideline2">
+
+        <!-- DEV: Container 2 Label -->
+        <TextView
+            android:id="@+id/devLabel2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2"
+            android:textSize="36sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/space_mono"
+            android:textStyle="bold"
+            android:background="#80000000"
+            android:padding="12dp"
+            android:elevation="999dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_margin="8dp"
+            android:layout_marginTop="104dp" />
 
         <!-- Watermark -->
         <TextView
+            android:id="@+id/watermark2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ZOOTBOX"
             android:fontFamily="@font/oswald"
-            android:textSize="140sp"
+            android:textSize="150sp"
+            android:letterSpacing="0.08"
             android:textColor="#0D000000"
             android:textStyle="bold"
             android:includeFontPadding="false"
@@ -225,56 +234,32 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="5">
-            
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="3"
-                android:orientation="vertical"
-                android:gravity="center_vertical"
-                android:paddingStart="48dp">
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZOOTBOX"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="48sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
+        <!-- Title Image -->
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/vapesimg"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintWidth_percent="0.92"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$150.15"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="60sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_s2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="VIEW ITEM"
-                    android:textColor="@color/grid_primary"
-                    android:backgroundTint="@color/white"
-                    android:layout_marginTop="16dp" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2"
-                android:src="@drawable/img_category_vapes"
-                android:padding="32dp"
-                android:scaleType="fitCenter" />
-        </LinearLayout>
+        <!-- Button -->
+        <Button
+            android:id="@+id/btn_s2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shop Now"
+            android:textColor="@color/grid_primary"
+            android:backgroundTint="@color/white"
+            android:layout_marginBottom="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- SECTION 1 (Top Layer) -->
@@ -286,15 +271,34 @@
         android:backgroundTint="@color/grid_card_1_light"
         android:elevation="30dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintHeight_percent="0.25">
+        app:layout_constraintBottom_toBottomOf="@id/guideline1">
+
+        <!-- DEV: Container 1 Label -->
+        <TextView
+            android:id="@+id/devLabel1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1"
+            android:textSize="36sp"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/space_mono"
+            android:textStyle="bold"
+            android:background="#80000000"
+            android:padding="12dp"
+            android:elevation="999dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_margin="8dp" />
 
         <!-- Watermark -->
         <TextView
+            android:id="@+id/watermark1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="ZOOTBOX"
             android:fontFamily="@font/oswald"
-            android:textSize="140sp"
+            android:textSize="150sp"
+            android:letterSpacing="0.08"
             android:textColor="#0DFFFFFF"
             android:textStyle="bold"
             android:includeFontPadding="false"
@@ -303,56 +307,31 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:weightSum="5">
-            
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="3"
-                android:orientation="vertical"
-                android:gravity="center_vertical"
-                android:paddingStart="48dp">
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="ZOOTBOX"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="48sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
+        <!-- Title Image -->
+        <ImageView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/zynsimg"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
+            app:layout_constraintWidth_percent="0.65"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="$120.00"
-                    android:fontFamily="@font/oswald"
-                    android:textSize="60sp"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_s1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SHOP NOW"
-                    android:textColor="@color/grid_card_1_light"
-                    android:backgroundTint="@color/white"
-                    android:layout_marginTop="16dp" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2"
-                android:src="@drawable/img_zyn_citrus"
-                android:padding="32dp"
-                android:scaleType="fitCenter" />
-        </LinearLayout>
+        <!-- Button -->
+        <Button
+            android:id="@+id/btn_s1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shop Now"
+            android:textColor="@color/grid_card_1_light"
+            android:backgroundTint="@color/white"
+            android:layout_marginBottom="20dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

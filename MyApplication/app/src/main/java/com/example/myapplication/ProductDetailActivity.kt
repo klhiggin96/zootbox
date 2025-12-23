@@ -10,6 +10,7 @@ import android.os.Environment
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -39,8 +40,8 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var textQuantity: TextView
     private lateinit var textPrice: TextView
     private lateinit var textPreviousPrice: TextView
-    private lateinit var btnQuantityMinus: Button
-    private lateinit var btnQuantityPlus: Button
+    private lateinit var btnQuantityMinus: ImageButton
+    private lateinit var btnQuantityPlus: ImageButton
     private lateinit var btnAddToCart: Button
     
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
@@ -121,6 +122,11 @@ class ProductDetailActivity : AppCompatActivity() {
         btnQuantityMinus = findViewById(R.id.btn_quantity_minus)
         btnQuantityPlus = findViewById(R.id.btn_quantity_plus)
         btnAddToCart = findViewById(R.id.btn_add_to_cart)
+
+        // Setup back button
+        findViewById<ImageView>(R.id.btn_back).setOnClickListener {
+            finish()
+        }
     }
     
     private fun setupProductInfo(name: String, price: Double, prevPrice: Double, description: String) {
@@ -135,9 +141,7 @@ class ProductDetailActivity : AppCompatActivity() {
         } else {
             textPreviousPrice.visibility = View.GONE
         }
-        
-        findViewById<TextView>(R.id.detail_description).text = description
-        
+
         // Set category if available
         val category = intent.getStringExtra("category") ?: "PREMIUM NICOTINE POUCHES"
         findViewById<TextView>(R.id.text_category).text = category

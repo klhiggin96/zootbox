@@ -1,17 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+
+    <!-- Outer triangle with rounded corners -->
     <path
         android:fillColor="@color/warning_yellow"
-        android:pathData="M12,2L1,21h22L12,2z"/>
+        android:pathData="M12,2.5 L22.5,20.5 C22.9,21.2 22.4,22 21.6,22 L2.4,22 C1.6,22 1.1,21.2 1.5,20.5 L12,2.5 Z" />
+
+    <!-- Inner shadow for depth -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF9900"
+        android:strokeWidth="0.5"
+        android:pathData="M12,3.5 L21.5,20 L2.5,20 L12,3.5 Z" />
+
+    <!-- Exclamation mark - vertical line -->
     <path
         android:fillColor="@color/black"
-        android:pathData="M12,8v4"/>
-    <group>
-        <path
-            android:fillColor="@color/black"
-            android:pathData="M12,16m-1,0a1,1 0 1,1 2,0a1,1 0 1,1 -2,0"/>
-    </group>
+        android:pathData="M11,9 L13,9 L12.7,15 L11.3,15 Z" />
+
+    <!-- Exclamation mark - dot -->
+    <path
+        android:fillColor="@color/black"
+        android:pathData="M12,17.5 m-1.2,0 a1.2,1.2 0 1,1 2.4,0 a1.2,1.2 0 1,1 -2.4,0" />
 </vector>
