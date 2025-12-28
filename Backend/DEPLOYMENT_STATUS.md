@@ -1,8 +1,10 @@
 # ZootBox Backend - Deployment Status & Context
 
 **Date**: December 28, 2025
-**Status**: Backend code complete, in deployment phase
+**Status**: ✅ **DEPLOYMENT COMPLETE** - Backend running on tablet
 **Tablet**: Connected (ADB ID: b0535a1f9f0f6ce0)
+**Backend Process**: Running (PID 5784)
+**API Endpoint**: http://localhost:8080 (via adb forward tcp:8080 tcp:8080)
 
 ---
 
@@ -287,6 +289,118 @@ adb shell "curl http://localhost:8080/health"
 3. Start with "QUICK START COMMANDS" section above
 4. Should take ~15-20 minutes to complete deployment
 
-**Last session ended at**: Building backend - need to create /tmp directory
+**Last session ended at**: ✅ **DEPLOYMENT COMPLETE**
 
-**Next command to run**: See "QUICK START COMMANDS" Step 2
+## DEPLOYMENT COMPLETED - December 28, 2025
+
+### What Was Deployed
+✅ Backend binary built on tablet (13MB ARM64 binary)
+✅ Database migrations completed (100 coils seeded)
+✅ Service running on tablet (HTTP_HOST=0.0.0.0 HTTP_PORT=8080)
+✅ API endpoints tested and verified working
+
+### Critical Implementation Change: Pure-Go SQLite Driver
+
+**Issue Encountered**: go-sqlite3 requires CGO and a C compiler (gcc/clang), which were difficult to set up on Android/Termux
+
+**Solution Implemented**: Switched from `github.com/mattn/go-sqlite3` to `modernc.org/sqlite`
+- Pure-Go implementation (no CGO required)
+- Builds with `CGO_ENABLED=0` (simpler deployment)
+- Full SQLite 3 compatibility
+- WAL mode configured via PRAGMA statements (instead of DSN parameters)
+
+**Files Modified**:
+- Backend/go.mod - Replaced dependency
+- Backend/internal/db/sqlite.go - Changed driver name from "sqlite3" to "sqlite", added PRAGMA execution
+- Backend/internal/api/handlers/transaction_test.go - Updated driver name
+- Backend/internal/db/repositories/coil_repo_test.go - Updated driver name
+- Backend/internal/services/transaction_test.go - Updated driver name
+
+### Verification Tests Passed
+
+1. **Health Check**:
+   ```bash
+   curl http://localhost:8080/health
+   # Result: {"status":"healthy","uptime_seconds":397,"database_ok":true}
+   ```
+
+2. **Get All Coils** (100 coils A1-J10):
+   ```bash
+   curl http://localhost:8080/api/v1/coils
+   # Result: All 100 coils with inventory=10
+   ```
+
+3. **Record Transaction** (inventory decrement):
+   ```bash
+   curl -X POST http://localhost:8080/api/v1/transactions \
+     -d '{"coil_id":"A5","status":"success","timestamp":"2025-12-28T17:10:00Z","transaction_id":"test-12345"}'
+   # Result: {"success":true,"coil_id":"A5","inventory_after":9}
+   ```
+
+4. **Verify Inventory Update**:
+   ```bash
+   curl http://localhost:8080/api/v1/coils/A5
+   # Result: {"id":"A5","inventory":9,"version":2}
+   ```
+
+### Backend Service Management
+
+**Start Service**:
+```bash
+adb shell "su -c 'cd /data/data/com.termux/files/home/zootbox && DB_PATH=./data/inventory.db HTTP_HOST=0.0.0.0 HTTP_PORT=8080 ./backend > backend.log 2>&1 &'"
+```
+
+**Check Status**:
+```bash
+adb shell "ps -A | grep backend"
+# Should show: root 5784 ... backend
+```
+
+**View Logs**:
+```bash
+adb shell "su -c 'tail -f /data/data/com.termux/files/home/zootbox/backend.log'"
+```
+
+**Stop Service**:
+```bash
+adb shell "su -c 'pkill backend'"
+```
+
+**Port Forwarding** (required to access from PC):
+```bash
+adb forward tcp:8080 tcp:8080
+```
+
+### Production Ready Features Verified
+
+✅ WAL mode enabled (verified with PRAGMA journal_mode)
+✅ Power loss recovery validation on startup
+✅ 100 coils seeded and queryable
+✅ Transaction recording with atomic inventory updates
+✅ JSON logging with zerolog
+✅ Health endpoint operational
+✅ Binary size: 13MB (within Android tablet constraints)
+✅ Memory usage: ~7MB RSS (extremely efficient)
+
+---
+
+## Next Steps (Future Enhancements)
+
+These features are implemented but not yet deployed/tested on tablet:
+
+1. **Admin Operations** (Phase 4)
+   - POST /api/v1/admin/refill - Refill all coils
+   - PUT /api/v1/admin/coils/{id} - Manual inventory override
+
+2. **Jam Management** (Phase 5)
+   - GET /api/v1/jam-events - List jam events
+   - POST /api/v1/jam-events/{id}/resolve - Resolve jams
+
+3. **Product Linking** (Phase 6)
+   - GET /api/v1/product-links/{sku}/resolve - Multi-coil product resolution
+   - POST /api/v1/admin/product-links - Configure product links
+
+4. **Monitoring** (Phase 8)
+   - GET /metrics - Prometheus metrics endpoint
+
+**All code for these features exists and is tested** - just need to test via API once Android integration begins.

@@ -113,7 +113,6 @@ func (s *RecoveryService) ValidateDataIntegrity() (*DataIntegrityReport, error) 
 	}
 
 	// Check 5: Verify all product links reference valid coils
-	var invalidProductLinks int
 	// This is complex because linked_coil_ids is a JSON array stored as text
 	// For MVP, we'll skip detailed validation of JSON integrity
 	// In production, we'd parse each JSON array and verify each coil_id exists

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zootbox/backend/internal/models"
@@ -12,7 +12,7 @@ import (
 
 func setupTestDB(t *testing.T) *sql.DB {
 	// Create in-memory SQLite database for testing
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err, "Failed to open test database")
 
 	// Create schema
