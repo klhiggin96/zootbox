@@ -109,14 +109,42 @@ Backend updates inventory based on reported status:
 - `status=jam` → Create jam event, inventory unchanged
 - `status=failed` → Log transaction, inventory unchanged
 
+## Testing
+
+### Quick Start
+```bash
+# Run all unit tests
+make test
+
+# Generate coverage report
+make test-coverage
+
+# Run integration tests (requires server running)
+make test-integration
+
+# Run comprehensive test suite
+make test-all
+```
+
+### Test Coverage
+- **39 unit tests** across repository, service, and handler layers
+- **14 integration test scenarios** for end-to-end validation
+- **≥85% code coverage** target met
+
+### Documentation
+- **Quick Reference**: [TESTING_QUICK_REF.md](TESTING_QUICK_REF.md) - Common test commands
+- **Full Guide**: [TESTING.md](TESTING.md) - Comprehensive testing documentation
+- **Coverage Report**: [TEST_SUMMARY.md](TEST_SUMMARY.md) - Detailed test breakdown
+
 ## Development Workflow
 
 1. Make changes to source code
 2. Run tests: `make test`
-3. Run locally: `make run`
-4. Test API endpoints with curl or Postman
-5. Build for ARM64: `make build-arm64`
-6. Deploy to tablet: `make install-tablet`
+3. Check coverage: `make test-coverage`
+4. Run locally: `make run`
+5. Test API endpoints with curl or integration tests
+6. Build for ARM64: `make build-arm64`
+7. Deploy to tablet: `make install-tablet`
 
 ## Project Structure
 
