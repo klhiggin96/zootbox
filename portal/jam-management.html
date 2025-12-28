@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jam Management - ZootBox Portal</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navigation.css">
+  <link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <div id="nav-container"></div>
+
+  <!-- Main Page Container -->
+  <div class="page-container">
+    <div class="content-wrapper">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Jam Management</h1>
+        <div class="page-actions">
+          <button id="refresh-jams-btn" class="btn btn-secondary">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="card">
+        <div class="form-group">
+          <label for="status-filter" class="form-label">Filter by Status:</label>
+          <select id="status-filter" class="form-select">
+            <option value="all">All Jams</option>
+            <option value="open" selected>Open Jams Only</option>
+            <option value="resolved">Resolved Jams</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Jams Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Jam Events</h3>
+        </div>
+
+        <div id="jams-table-container">
+          <div class="grid-loading">
+            <div class="loading"></div>
+            <p>Loading jam events...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module">
+    import { loadNavigation } from './js/components/Navigation.js';
+    import { initMachineSelector } from './js/components/MachineSelector.js';
+    import { getJamEvents, resolveJamEvent, sortJamsByTimestamp } from './js/api/jams.js';
+    import { getCurrentMachineId } from './js/state/machines.js';
+    import { showToast } from './js/components/Toast.js';
+    import { confirmDialog } from './js/components/Modal.js';
+    import { formatDateTime, formatTimeAgo } from './js/utils/formatting.js';
+
+    let currentJams = [];
+
+    // Initialize page
+    async function initPage() {
+      await loadNavigation();
+      initMachineSelector();
+
+      // Load jams
+      await loadJams();
+
+      // Status filter change handler
+      document.getElementById('status-filter').addEventListener('change', async () => {
+        await loadJams();
+      });
+
+      // Refresh button handler
+      document.getElementById('refresh-jams-btn').addEventListener('click', async () => {
+        await loadJams();
+      });
+    }
+
+    // Load jam events
+    async function loadJams() {
+      const machineId = getCurrentMachineId();
+      const container = document.getElementById('jams-table-container');
+
+      if (!machineId) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h2>No Machine Selected</h2>
+            <p>Please select a machine from the dropdown above.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const statusFilter = document.getElementById('status-filter').value;
+
+      try {
+        const jams = await getJamEvents(statusFilter);
+        currentJams = sortJamsByTimestamp(jams);
+
+        if (currentJams.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h2>No Jam Events</h2>
+              <p>${statusFilter === 'open' ? 'No open jams found. All coils are operating normally.' : 'No jam events found.'}</p>
+            </div>
+          `;
+          return;
+        }
+
+        renderJamsTable(currentJams);
+
+      } catch (error) {
+        console.error('Failed to load jams:', error);
+        showToast('Failed to load jam events: ' + error.message, 'error');
+        container.innerHTML = `
+          <div class="error-state">
+            <h2>Error Loading Jams</h2>
+            <p>${error.message}</p>
+            <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    // Render jams table
+    function renderJamsTable(jams) {
+      const container = document.getElementById('jams-table-container');
+
+      const table = document.createElement('table');
+      table.className = 'table';
+
+      // Table header
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Coil ID</th>
+          <th>Timestamp</th>
+          <th>Status</th>
+          <th>Resolved At</th>
+          <th>Duration</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // Table body
+      const tbody = document.createElement('tbody');
+
+      jams.forEach(jam => {
+        const row = document.createElement('tr');
+
+        const duration = jam.resolved_at
+          ? new Date(jam.resolved_at).getTime() - new Date(jam.timestamp).getTime()
+          : Date.now() - new Date(jam.timestamp).getTime();
+
+        const durationMinutes = Math.floor(duration / (60 * 1000));
+
+        row.innerHTML = `
+          <td><strong>${jam.coil_id}</strong></td>
+          <td>${formatDateTime(jam.timestamp)}</td>
+          <td>
+            <span class="status-indicator ${jam.status === 'open' ? 'offline' : 'online'}">
+              ${jam.status}
+            </span>
+          </td>
+          <td>${jam.resolved_at ? formatDateTime(jam.resolved_at) : '-'}</td>
+          <td>${durationMinutes < 60 ? durationMinutes + 'm' : Math.floor(durationMinutes/60) + 'h ' + (durationMinutes%60) + 'm'}</td>
+          <td>
+            ${jam.status === 'open'
+              ? `<button class="btn btn-sm btn-success" data-jam-id="${jam.id}" data-coil-id="${jam.coil_id}">Resolve</button>`
+              : '<span style="color: var(--text-muted)">Resolved</span>'}
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.innerHTML = '';
+      container.appendChild(table);
+
+      // Add resolve button handlers
+      const resolveButtons = container.querySelectorAll('button[data-jam-id]');
+      resolveButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+          await handleResolve(button.dataset.jamId, button.dataset.coilId);
+        });
+      });
+    }
+
+    // Handle jam resolution
+    async function handleResolve(jamId, coilId) {
+      const confirmed = await confirmDialog(
+        `Resolve jam for coil ${coilId}?\n\nThis will mark the jam as resolved and set the coil status to available.`,
+        'Resolve Jam',
+        {
+          confirmText: 'Resolve',
+          confirmClass: 'btn-success'
+        }
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await resolveJamEvent(jamId);
+        showToast(`Jam resolved for coil ${coilId}`, 'success');
+        await loadJams();
+
+      } catch (error) {
+        console.error('Failed to resolve jam:', error);
+        showToast('Failed to resolve jam: ' + error.message, 'error');
+      }
+    }
+
+    // Initialize
+    initPage().catch(error => {
+      console.error('Page initialization failed:', error);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Machine Settings - ZootBox Portal</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navigation.css">
+  <link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <div id="nav-container"></div>
+
+  <!-- Main Page Container -->
+  <div class="page-container">
+    <div class="content-wrapper">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Machine Settings</h1>
+        <div class="page-actions">
+          <button id="add-machine-btn" class="btn btn-primary">
+            Add Machine
+          </button>
+        </div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card">
+        <p style="margin: 0;">
+          Configure vending machine connections. Each machine needs a name and endpoint URL (backend API address).
+          Use <strong>http://localhost:8080</strong> for local testing or connect to remote tablets via ADB port forwarding or VPN.
+        </p>
+      </div>
+
+      <!-- Machines List -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Your Machines</h3>
+        </div>
+
+        <div id="machines-list-container">
+          <div class="grid-loading">
+            <div class="loading"></div>
+            <p>Loading machines...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADB Setup Instructions -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">ADB Port Forwarding Setup</h3>
+        </div>
+        <div style="padding: 16px; font-size: 14px; color: var(--text-secondary);">
+          <p>To connect to a tablet backend via USB:</p>
+          <ol style="margin: 8px 0; padding-left: 24px;">
+            <li>Connect tablet via USB cable</li>
+            <li>Run: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px;">adb devices</code> (verify connection)</li>
+            <li>Run: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px;">adb forward tcp:8080 tcp:8080</code></li>
+            <li>Use endpoint URL: <strong>http://localhost:8080</strong></li>
+          </ol>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module">
+    import { loadNavigation } from './js/components/Navigation.js';
+    import { refreshMachineList } from './js/components/MachineSelector.js';
+    import { getMachines, addMachine, updateMachine, deleteMachine } from './js/state/machines.js';
+    import { showToast } from './js/components/Toast.js';
+    import { showModal, confirmDialog } from './js/components/Modal.js';
+    import { validateMachineName, validateUrl } from './js/utils/validation.js';
+    import { formatDateTime } from './js/utils/formatting.js';
+    import { apiClient } from './js/api/client.js';
+
+    // Initialize page
+    async function initPage() {
+      await loadNavigation();
+
+      // Load machines
+      loadMachines();
+
+      // Add machine button handler
+      document.getElementById('add-machine-btn').addEventListener('click', showAddMachineModal);
+    }
+
+    // Load machines list
+    function loadMachines() {
+      const container = document.getElementById('machines-list-container');
+      const machines = getMachines();
+
+      if (machines.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h2>No Machines Configured</h2>
+            <p>Click "Add Machine" to configure your first vending machine.</p>
+          </div>
+        `;
+        return;
+      }
+
+      renderMachinesList(machines);
+    }
+
+    // Render machines list
+    function renderMachinesList(machines) {
+      const container = document.getElementById('machines-list-container');
+
+      const table = document.createElement('table');
+      table.className = 'table';
+
+      // Table header
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Name</th>
+          <th>Endpoint URL</th>
+          <th>Status</th>
+          <th>Last Sync</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // Table body
+      const tbody = document.createElement('tbody');
+
+      machines.forEach(machine => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+          <td><strong>${machine.name}</strong></td>
+          <td><code>${machine.endpointUrl}</code></td>
+          <td>
+            <span class="status-indicator ${machine.status || 'offline'}">
+              ${machine.status || 'offline'}
+            </span>
+          </td>
+          <td>${machine.lastSyncTime ? formatDateTime(machine.lastSyncTime) : 'Never'}</td>
+          <td>${formatDateTime(machine.createdAt)}</td>
+          <td>
+            <button class="btn btn-sm btn-secondary" data-machine-id="${machine.id}" data-action="edit">Edit</button>
+            <button class="btn btn-sm btn-secondary" data-machine-id="${machine.id}" data-action="test">Test</button>
+            <button class="btn btn-sm btn-danger" data-machine-id="${machine.id}" data-action="delete">Delete</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.innerHTML = '';
+      container.appendChild(table);
+
+      // Add button handlers
+      const buttons = container.querySelectorAll('button[data-machine-id]');
+      buttons.forEach(button => {
+        const machineId = button.dataset.machineId;
+        const action = button.dataset.action;
+
+        button.addEventListener('click', async () => {
+          const machine = machines.find(m => m.id === machineId);
+          if (!machine) return;
+
+          switch (action) {
+            case 'edit':
+              showEditMachineModal(machine);
+              break;
+            case 'test':
+              await testConnection(machine);
+              break;
+            case 'delete':
+              await handleDelete(machine);
+              break;
+          }
+        });
+      });
+    }
+
+    // Show add machine modal
+    function showAddMachineModal() {
+      const content = document.createElement('div');
+      content.innerHTML = `
+        <div class="form-group">
+          <label for="machine-name-input" class="form-label">Machine Name</label>
+          <input type="text" id="machine-name-input" class="form-input" placeholder="e.g., Downtown Location" required />
+          <small class="form-help">A friendly name to identify this machine (1-50 characters)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="machine-url-input" class="form-label">Endpoint URL</label>
+          <input type="url" id="machine-url-input" class="form-input" placeholder="http://localhost:8080" required />
+          <small class="form-help">Backend API base URL (e.g., http://localhost:8080)</small>
+        </div>
+      `;
+
+      showModal({
+        title: 'Add Machine',
+        content,
+        buttons: [
+          {
+            text: 'Cancel',
+            className: 'btn-secondary',
+            onClick: () => true
+          },
+          {
+            text: 'Add',
+            className: 'btn-primary',
+            onClick: async () => {
+              await handleAddMachine();
+              return false;
+            }
+          }
+        ]
+      });
+
+      setTimeout(() => {
+        document.getElementById('machine-name-input')?.focus();
+      }, 100);
+    }
+
+    // Show edit machine modal
+    function showEditMachineModal(machine) {
+      const content = document.createElement('div');
+      content.innerHTML = `
+        <div class="form-group">
+          <label for="machine-name-input" class="form-label">Machine Name</label>
+          <input type="text" id="machine-name-input" class="form-input" value="${machine.name}" required />
+        </div>
+
+        <div class="form-group">
+          <label for="machine-url-input" class="form-label">Endpoint URL</label>
+          <input type="url" id="machine-url-input" class="form-input" value="${machine.endpointUrl}" required />
+        </div>
+      `;
+
+      showModal({
+        title: 'Edit Machine',
+        content,
+        buttons: [
+          {
+            text: 'Cancel',
+            className: 'btn-secondary',
+            onClick: () => true
+          },
+          {
+            text: 'Save',
+            className: 'btn-primary',
+            onClick: async () => {
+              await handleEditMachine(machine.id);
+              return false;
+            }
+          }
+        ]
+      });
+    }
+
+    // Handle add machine
+    async function handleAddMachine() {
+      const nameInput = document.getElementById('machine-name-input');
+      const urlInput = document.getElementById('machine-url-input');
+
+      const name = nameInput.value.trim();
+      const url = urlInput.value.trim();
+
+      // Validate
+      const nameValidation = validateMachineName(name);
+      if (!nameValidation.valid) {
+        showToast(nameValidation.error, 'error');
+        nameInput.focus();
+        return;
+      }
+
+      const urlValidation = validateUrl(url);
+      if (!urlValidation.valid) {
+        showToast(urlValidation.error, 'error');
+        urlInput.focus();
+        return;
+      }
+
+      try {
+        const machine = addMachine({ name, endpointUrl: url });
+        showToast(`Machine "${name}" added successfully`, 'success');
+
+        // Close modal
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(m => m.remove());
+
+        // Reload list and machine selector
+        loadMachines();
+        refreshMachineList();
+
+      } catch (error) {
+        console.error('Failed to add machine:', error);
+        showToast('Failed to add machine: ' + error.message, 'error');
+      }
+    }
+
+    // Handle edit machine
+    async function handleEditMachine(machineId) {
+      const nameInput = document.getElementById('machine-name-input');
+      const urlInput = document.getElementById('machine-url-input');
+
+      const name = nameInput.value.trim();
+      const url = urlInput.value.trim();
+
+      // Validate
+      const nameValidation = validateMachineName(name);
+      if (!nameValidation.valid) {
+        showToast(nameValidation.error, 'error');
+        return;
+      }
+
+      const urlValidation = validateUrl(url);
+      if (!urlValidation.valid) {
+        showToast(urlValidation.error, 'error');
+        return;
+      }
+
+      try {
+        updateMachine(machineId, { name, endpointUrl: url });
+        showToast('Machine updated successfully', 'success');
+
+        // Close modal
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(m => m.remove());
+
+        // Reload list and machine selector
+        loadMachines();
+        refreshMachineList();
+
+      } catch (error) {
+        console.error('Failed to update machine:', error);
+        showToast('Failed to update machine: ' + error.message, 'error');
+      }
+    }
+
+    // Test connection
+    async function testConnection(machine) {
+      showToast('Testing connection...', 'info');
+
+      // Temporarily set base URL
+      const originalBaseURL = apiClient.baseURL;
+      apiClient.setBaseURL(machine.endpointUrl);
+
+      try {
+        const result = await apiClient.healthCheck();
+
+        if (result.status === 'online') {
+          showToast(`✓ Connection successful! Backend is healthy (uptime: ${result.data.uptime_seconds}s)`, 'success');
+          updateMachine(machine.id, { status: 'online' });
+          loadMachines();
+        } else {
+          showToast('✗ Connection failed: Backend is not responding', 'error');
+        }
+
+      } catch (error) {
+        console.error('Connection test failed:', error);
+        showToast('✗ Connection failed: ' + error.message, 'error');
+      } finally {
+        // Restore original base URL
+        apiClient.setBaseURL(originalBaseURL);
+      }
+    }
+
+    // Handle delete machine
+    async function handleDelete(machine) {
+      const confirmed = await confirmDialog(
+        `Delete machine "${machine.name}"?\n\nThis cannot be undone.`,
+        'Delete Machine',
+        {
+          confirmText: 'Delete',
+          confirmClass: 'btn-danger'
+        }
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        deleteMachine(machine.id);
+        showToast(`Machine "${machine.name}" deleted`, 'success');
+
+        // Reload list and machine selector
+        loadMachines();
+        refreshMachineList();
+
+      } catch (error) {
+        console.error('Failed to delete machine:', error);
+        showToast('Failed to delete machine: ' + error.message, 'error');
+      }
+    }
+
+    // Initialize
+    initPage().catch(error => {
+      console.error('Page initialization failed:', error);
+    });
+  </script>
+</body>
+</html>

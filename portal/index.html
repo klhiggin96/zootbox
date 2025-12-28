@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/navigation.css">
   <link rel="stylesheet" href="css/grid.css">
+  <link rel="stylesheet" href="css/forms.css">
 </head>
 <body>
   <!-- Navigation (loaded from nav.html) -->
@@ -105,6 +106,7 @@
     import { initMachineSelector } from './js/components/MachineSelector.js';
     import { initCoilGrid } from './js/components/CoilGrid.js';
     import { initStatusIndicator } from './js/components/StatusIndicator.js';
+    import { initRefillButton } from './js/components/RefillButton.js';
     import { startAutoRefresh, stopAutoRefresh } from './js/state/sync.js';
     import { getCurrentMachineId } from './js/state/machines.js';
 
@@ -121,6 +123,9 @@
 
       // Initialize coil grid
       initCoilGrid();
+
+      // Initialize refill button
+      initRefillButton();
 
       // Check if machine is selected
       const currentMachineId = getCurrentMachineId();

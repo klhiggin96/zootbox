@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Links - ZootBox Portal</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/navigation.css">
+  <link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <div id="nav-container"></div>
+
+  <!-- Main Page Container -->
+  <div class="page-container">
+    <div class="content-wrapper">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Product Links</h1>
+        <div class="page-actions">
+          <button id="create-link-btn" class="btn btn-primary" disabled>
+            Create Product Link
+          </button>
+        </div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="card">
+        <p style="margin: 0;">
+          Product links allow multiple coils to be linked to a single product SKU.
+          When a product is purchased, the system automatically selects the first available coil from the linked group.
+        </p>
+      </div>
+
+      <!-- Product Links Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Existing Product Links</h3>
+        </div>
+
+        <div id="links-table-container">
+          <div class="grid-loading">
+            <div class="loading"></div>
+            <p>Loading product links...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module">
+    import { loadNavigation } from './js/components/Navigation.js';
+    import { initMachineSelector } from './js/components/MachineSelector.js';
+    import { getProductLinks, createProductLink, deleteProductLink, parseLinkedCoilIds, formatLinkedCoilIds } from './js/api/products.js';
+    import { getCurrentMachineId } from './js/state/machines.js';
+    import { showToast } from './js/components/Toast.js';
+    import { showModal, confirmDialog } from './js/components/Modal.js';
+    import { formatDateTime } from './js/utils/formatting.js';
+    import { validateProductSku } from './js/utils/validation.js';
+
+    let currentLinks = [];
+
+    // Initialize page
+    async function initPage() {
+      await loadNavigation();
+      initMachineSelector();
+
+      // Load links
+      await loadProductLinks();
+
+      // Create link button handler
+      document.getElementById('create-link-btn').addEventListener('click', showCreateLinkModal);
+    }
+
+    // Load product links
+    async function loadProductLinks() {
+      const machineId = getCurrentMachineId();
+      const container = document.getElementById('links-table-container');
+      const createBtn = document.getElementById('create-link-btn');
+
+      if (!machineId) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <h2>No Machine Selected</h2>
+            <p>Please select a machine from the dropdown above.</p>
+          </div>
+        `;
+        createBtn.disabled = true;
+        return;
+      }
+
+      createBtn.disabled = false;
+
+      try {
+        const links = await getProductLinks();
+        currentLinks = links;
+
+        if (links.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <h2>No Product Links</h2>
+              <p>Create a product link to allow multiple coils to serve the same product.</p>
+            </div>
+          `;
+          return;
+        }
+
+        renderLinksTable(links);
+
+      } catch (error) {
+        console.error('Failed to load product links:', error);
+        showToast('Failed to load product links: ' + error.message, 'error');
+        container.innerHTML = `
+          <div class="error-state">
+            <h2>Error Loading Product Links</h2>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Render product links table
+    function renderLinksTable(links) {
+      const container = document.getElementById('links-table-container');
+
+      const table = document.createElement('table');
+      table.className = 'table';
+
+      // Table header
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Product SKU</th>
+          <th>Linked Coils</th>
+          <th>Strategy</th>
+          <th>Created At</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // Table body
+      const tbody = document.createElement('tbody');
+
+      links.forEach(link => {
+        const row = document.createElement('tr');
+        const coilIds = formatLinkedCoilIds(link.linked_coil_ids);
+
+        row.innerHTML = `
+          <td><strong>${link.product_sku}</strong></td>
+          <td>${coilIds} (${parseLinkedCoilIds(link.linked_coil_ids).length} coils)</td>
+          <td>${link.selection_strategy}</td>
+          <td>${formatDateTime(link.created_at)}</td>
+          <td>
+            <button class="btn btn-sm btn-danger" data-link-id="${link.link_group_id}" data-sku="${link.product_sku}">
+              Delete
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.innerHTML = '';
+      container.appendChild(table);
+
+      // Add delete button handlers
+      const deleteButtons = container.querySelectorAll('button[data-link-id]');
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+          await handleDelete(button.dataset.linkId, button.dataset.sku);
+        });
+      });
+    }
+
+    // Show create link modal
+    function showCreateLinkModal() {
+      const content = document.createElement('div');
+      content.innerHTML = `
+        <div class="form-group">
+          <label for="product-sku-input" class="form-label">Product SKU</label>
+          <input type="text" id="product-sku-input" class="form-input" placeholder="e.g., COKE-001" required />
+          <small class="form-help">Enter a unique product identifier</small>
+        </div>
+
+        <div class="form-group">
+          <label for="coil-ids-input" class="form-label">Linked Coil IDs</label>
+          <input type="text" id="coil-ids-input" class="form-input" placeholder="e.g., A1, A2, A3" required />
+          <small class="form-help">Enter coil IDs separated by commas (e.g., A1, A2, A3). Max 10 coils.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Selection Strategy</label>
+          <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">
+            <strong>First Available:</strong> Selects the first coil with inventory > 0
+          </p>
+        </div>
+      `;
+
+      showModal({
+        title: 'Create Product Link',
+        content,
+        buttons: [
+          {
+            text: 'Cancel',
+            className: 'btn-secondary',
+            onClick: () => true
+          },
+          {
+            text: 'Create',
+            className: 'btn-primary',
+            onClick: async () => {
+              await handleCreate();
+              return false; // Don't close yet
+            }
+          }
+        ]
+      });
+
+      // Focus SKU input
+      setTimeout(() => {
+        document.getElementById('product-sku-input')?.focus();
+      }, 100);
+    }
+
+    // Handle create link
+    async function handleCreate() {
+      const skuInput = document.getElementById('product-sku-input');
+      const coilIdsInput = document.getElementById('coil-ids-input');
+
+      const sku = skuInput.value.trim();
+      const coilIdsStr = coilIdsInput.value.trim();
+
+      // Validate SKU
+      const skuValidation = validateProductSku(sku);
+      if (!skuValidation.valid) {
+        showToast(skuValidation.error, 'error');
+        skuInput.focus();
+        return;
+      }
+
+      // Parse coil IDs
+      const coilIds = coilIdsStr.split(',').map(id => id.trim().toUpperCase()).filter(id => id.length > 0);
+
+      if (coilIds.length === 0) {
+        showToast('Please enter at least one coil ID', 'error');
+        coilIdsInput.focus();
+        return;
+      }
+
+      if (coilIds.length > 10) {
+        showToast('Maximum 10 coils can be linked to a product', 'error');
+        coilIdsInput.focus();
+        return;
+      }
+
+      try {
+        await createProductLink(sku, coilIds);
+        showToast(`Product link created for ${sku}`, 'success');
+
+        // Close modal
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(m => m.remove());
+
+        // Reload table
+        await loadProductLinks();
+
+      } catch (error) {
+        console.error('Failed to create product link:', error);
+        showToast('Failed to create product link: ' + error.message, 'error');
+      }
+    }
+
+    // Handle delete link
+    async function handleDelete(linkId, sku) {
+      const confirmed = await confirmDialog(
+        `Delete product link for ${sku}?\n\nThis will unlink all associated coils.`,
+        'Delete Product Link',
+        {
+          confirmText: 'Delete',
+          confirmClass: 'btn-danger'
+        }
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await deleteProductLink(linkId);
+        showToast(`Product link deleted for ${sku}`, 'success');
+        await loadProductLinks();
+
+      } catch (error) {
+        console.error('Failed to delete product link:', error);
+        showToast('Failed to delete product link: ' + error.message, 'error');
+      }
+    }
+
+    // Initialize
+    initPage().catch(error => {
+      console.error('Page initialization failed:', error);
+    });
+  </script>
+</body>
+</html>

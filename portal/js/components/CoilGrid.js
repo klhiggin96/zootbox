@@ -104,24 +104,16 @@ function createCoilCell(coilId) {
 /**
  * Handle coil cell click
  */
-function handleCoilClick(coilId) {
+async function handleCoilClick(coilId) {
   const coil = currentCoils.find(c => c.id === coilId);
 
   if (!coil) {
     return;
   }
 
-  // Show coil details in a simple alert for now
-  // TODO: Replace with modal dialog in Phase 4B
-  const details = [
-    `Coil: ${coil.id}`,
-    `Inventory: ${coil.inventory}`,
-    `Status: ${coil.status}`,
-    `Linked: ${coil.link_group_id ? 'Yes' : 'No'}`,
-    `Last Updated: ${new Date(coil.updated_at).toLocaleString()}`
-  ].join('\n');
-
-  alert(details);
+  // Show coil edit modal
+  const { showCoilEditModal } = await import('./CoilEditModal.js');
+  showCoilEditModal(coil);
 }
 
 /**
