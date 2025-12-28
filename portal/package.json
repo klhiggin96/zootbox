@@ -1,0 +1,32 @@
+{
+  "name": "zootbox-inventory-portal",
+  "version": "1.0.0",
+  "description": "Web-based inventory management portal for ZootBox vending machines",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server --port=3000 --host=localhost --open=/index.html",
+    "serve": "python -m http.server 3000",
+    "lint": "eslint js/**/*.js",
+    "lint:fix": "eslint js/**/*.js --fix"
+  },
+  "keywords": [
+    "inventory",
+    "vending",
+    "zootbox",
+    "portal"
+  ],
+  "author": "ZootBox Development Team",
+  "license": "PROPRIETARY",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bossmandlow523/zootbox.git",
+    "directory": "portal"
+  }
+}
