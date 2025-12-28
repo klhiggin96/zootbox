@@ -144,3 +144,36 @@ func (s *TransactionService) RecordVendEvent(req *RecordVendEventRequest) (*Reco
 		Message:        fmt.Sprintf("Vend event recorded with status: %s", req.Status),
 	}, nil
 }
+
+// Savepoint management utilities for nested transaction support
+// SQLite supports savepoints for partial rollback within a transaction
+
+// CreateSavepoint creates a named savepoint within a transaction
+func (s *TransactionService) CreateSavepoint(tx *sql.Tx, name string) error {
+	_, err := tx.Exec(fmt.Sprintf("SAVEPOINT %s", name))
+	if err != nil {
+		return fmt.Errorf("failed to create savepoint %s: %w", name, err)
+	}
+	log.Debug().Str("savepoint", name).Msg("Savepoint created")
+	return nil
+}
+
+// ReleaseSavepoint releases a savepoint (commits changes up to that point)
+func (s *TransactionService) ReleaseSavepoint(tx *sql.Tx, name string) error {
+	_, err := tx.Exec(fmt.Sprintf("RELEASE SAVEPOINT %s", name))
+	if err != nil {
+		return fmt.Errorf("failed to release savepoint %s: %w", name, err)
+	}
+	log.Debug().Str("savepoint", name).Msg("Savepoint released")
+	return nil
+}
+
+// RollbackToSavepoint rolls back to a named savepoint
+func (s *TransactionService) RollbackToSavepoint(tx *sql.Tx, name string) error {
+	_, err := tx.Exec(fmt.Sprintf("ROLLBACK TO SAVEPOINT %s", name))
+	if err != nil {
+		return fmt.Errorf("failed to rollback to savepoint %s: %w", name, err)
+	}
+	log.Debug().Str("savepoint", name).Msg("Rolled back to savepoint")
+	return nil
+}

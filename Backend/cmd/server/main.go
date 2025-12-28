@@ -14,14 +14,19 @@ import (
 	"github.com/zootbox/backend/internal/api"
 	"github.com/zootbox/backend/internal/config"
 	"github.com/zootbox/backend/internal/db"
+	"github.com/zootbox/backend/internal/profiling"
+	"github.com/zootbox/backend/internal/services"
 )
 
 func main() {
 	// Parse CLI flags
 	var (
-		logLevel  = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
-		configPath = flag.String("config", "", "Path to configuration file")
-		migrate    = flag.Bool("migrate", false, "Run database migrations and exit")
+		logLevel    = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+		configPath  = flag.String("config", "", "Path to configuration file")
+		migrate     = flag.Bool("migrate", false, "Run database migrations and exit")
+		cpuProfile  = flag.String("cpuprofile", "", "Write CPU profile to file")
+		memProfile  = flag.String("memprofile", "", "Write memory profile to file on exit")
+		memMonitor  = flag.Bool("memmonitor", false, "Enable periodic memory monitoring")
 	)
 	flag.Parse()
 
@@ -29,6 +34,30 @@ func main() {
 	setupLogging(*logLevel)
 
 	log.Info().Msg("Starting ZootBox Backend Inventory Service")
+
+	// CPU profiling
+	if *cpuProfile != "" {
+		stopCPU, err := profiling.StartCPUProfile(*cpuProfile)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to start CPU profiling")
+		}
+		defer stopCPU()
+	}
+
+	// Memory profiling on exit
+	if *memProfile != "" {
+		defer func() {
+			if err := profiling.MemoryProfile(*memProfile); err != nil {
+				log.Error().Err(err).Msg("Failed to write memory profile")
+			}
+		}()
+	}
+
+	// Memory monitoring
+	if *memMonitor {
+		profiling.MonitorMemory(30*time.Second, 25.0) // Alert if > 25MB
+		log.Info().Msg("Memory monitoring enabled (30s interval, 25MB threshold)")
+	}
 
 	// Load configuration
 	cfg, err := config.Load(*configPath)
@@ -61,11 +90,13 @@ func main() {
 		return
 	}
 
-	// TODO: Run recovery validation
-	// recovery := services.NewRecoveryService(database)
-	// if err := recovery.ValidateDataIntegrity(); err != nil {
-	//     log.Warn().Err(err).Msg("Recovery validation found issues")
-	// }
+	// Run power loss recovery validation
+	log.Info().Msg("Running post-startup data integrity validation")
+	recovery := services.NewRecoveryService(database)
+	if err := recovery.RecoverFromPowerLoss(); err != nil {
+		log.Fatal().Err(err).Msg("Power loss recovery failed - database corruption detected")
+	}
+	log.Info().Msg("Data integrity validation passed")
 
 	// Create HTTP server
 	server := api.NewServer(cfg, database)

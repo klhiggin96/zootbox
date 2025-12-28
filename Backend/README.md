@@ -81,19 +81,22 @@ See `contracts/openapi.yaml` for complete API documentation.
 
 ### Core Endpoints
 
-- `GET /health` - Health check
-- `GET /metrics` - Prometheus metrics
-- `GET /api/v1/coils` - List all coils
-- `GET /api/v1/coils/{coilId}` - Get coil details
-- `POST /api/v1/transactions` - Record vend event from Android
-- `GET /api/v1/jam-events` - List jam events
+- `GET /health` - Health check with database connectivity
+- `GET /metrics` - Prometheus-format metrics (memory, inventory, transactions, jams)
+- `GET /api/v1/coils` - List all coils with inventory
+- `GET /api/v1/coils/{coilId}` - Get specific coil details
+- `POST /api/v1/transactions` - Record vend event from Android app
+- `GET /api/v1/jam-events` - List jam events (supports ?status=open or ?status=resolved filter)
+- `POST /api/v1/jam-events/{eventId}/resolve` - Mark jam event as resolved
+- `GET /api/v1/product-links/{sku}/resolve` - Resolve product SKU to available coil
 
 ### Admin Endpoints
 
-- `POST /api/v1/admin/refill` - Refill all coils to 10
-- `PUT /api/v1/admin/coils/{coilId}` - Manually set coil inventory
-- `POST /api/v1/admin/product-links` - Create product link group
-- `POST /api/v1/jam-events/{eventId}/resolve` - Resolve jam event
+- `POST /api/v1/admin/refill` - Refill all 100 coils to inventory=10
+- `PUT /api/v1/admin/coils/{coilId}` - Manually set coil inventory (0-10)
+- `POST /api/v1/admin/product-links` - Create multi-coil product link group
+- `GET /api/v1/admin/product-links` - List all product link groups
+- `DELETE /api/v1/admin/product-links/{linkGroupId}` - Delete product link group
 
 ## Integration with Android App
 
