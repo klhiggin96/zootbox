@@ -1,5 +1,5 @@
 /**
- * CoilGrid Component - 10x10 grid renderer for inventory display
+ * CoilGrid Component - Row-based inventory grid renderer (1-10 rows showing A-J columns)
  *
  * Usage:
  *   import { initCoilGrid, refreshGrid } from './components/CoilGrid.js';
@@ -7,12 +7,14 @@
  */
 
 import { getCoils } from '../api/coils.js';
-import { getCoilStatusClass, isCoilLinked } from '../api/coils.js';
 import { getCurrentMachineId } from '../state/machines.js';
-import { cacheInventory, getCachedInventory, detectInventoryChanges } from '../state/inventory.js';
+import { cacheInventory, getCachedInventory } from '../state/inventory.js';
 import { showToast } from './Toast.js';
+import { showEditPanel } from './EditPanel.js';
+import { updateStatCards } from './StatCards.js';
 
 let currentCoils = [];
+let currentRows = [];
 
 /**
  * Initialize coil grid on page load
@@ -24,96 +26,8 @@ export function initCoilGrid() {
     return;
   }
 
-  // Generate grid structure
-  renderGridStructure(gridElement);
-
   // Load initial data
   refreshGrid();
-}
-
-/**
- * Generate 10x10 grid structure with labels
- */
-function renderGridStructure(gridElement) {
-  gridElement.innerHTML = '';
-
-  // Top-left corner (empty)
-  const corner = document.createElement('div');
-  corner.className = 'grid-corner';
-  gridElement.appendChild(corner);
-
-  // Column labels (1-10)
-  for (let col = 1; col <= 10; col++) {
-    const label = document.createElement('div');
-    label.className = 'grid-col-label';
-    label.textContent = col;
-    gridElement.appendChild(label);
-  }
-
-  // Rows A-J with row labels
-  const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-
-  rows.forEach((row, rowIndex) => {
-    // Row label
-    const rowLabel = document.createElement('div');
-    rowLabel.className = 'grid-row-label';
-    rowLabel.textContent = row;
-    gridElement.appendChild(rowLabel);
-
-    // 10 cells in this row
-    for (let col = 1; col <= 10; col++) {
-      const coilId = `${row}${col}`;
-      const cell = createCoilCell(coilId);
-      gridElement.appendChild(cell);
-    }
-  });
-}
-
-/**
- * Create a coil cell element
- */
-function createCoilCell(coilId) {
-  const cell = document.createElement('div');
-  cell.className = 'coil-cell coil-empty';
-  cell.dataset.coilId = coilId;
-  cell.id = `cell-${coilId}`;
-
-  // Coil ID label
-  const idLabel = document.createElement('div');
-  idLabel.className = 'coil-id';
-  idLabel.textContent = coilId;
-  cell.appendChild(idLabel);
-
-  // Inventory count
-  const inventory = document.createElement('div');
-  inventory.className = 'coil-inventory';
-  inventory.textContent = '0';
-  cell.appendChild(inventory);
-
-  // Status icon (will be populated later)
-  const statusIcon = document.createElement('div');
-  statusIcon.className = 'coil-status-icon';
-  cell.appendChild(statusIcon);
-
-  // Click handler
-  cell.addEventListener('click', () => handleCoilClick(coilId));
-
-  return cell;
-}
-
-/**
- * Handle coil cell click
- */
-async function handleCoilClick(coilId) {
-  const coil = currentCoils.find(c => c.id === coilId);
-
-  if (!coil) {
-    return;
-  }
-
-  // Show coil edit modal
-  const { showCoilEditModal } = await import('./CoilEditModal.js');
-  showCoilEditModal(coil);
 }
 
 /**
@@ -136,17 +50,18 @@ export async function refreshGrid() {
     // Cache for offline mode
     cacheInventory(machineId, coils);
 
+    // Transform to row-based structure
+    const rows = transposeToRows(coils);
+
     // Update grid
-    updateGrid(coils);
+    renderGrid(gridElement, rows);
 
-    // Update current coils reference
+    // Update current data references
     currentCoils = coils;
+    currentRows = rows;
 
-    // Update status bar
-    updateStatusBar(coils);
-
-    // Update last sync time
-    updateLastSyncTime();
+    // Update stat cards
+    updateStatCards(coils);
 
     return coils;
 
@@ -158,9 +73,11 @@ export async function refreshGrid() {
 
     if (cachedCoils) {
       console.log('Loading from cache');
-      updateGrid(cachedCoils);
+      const rows = transposeToRows(cachedCoils);
+      renderGrid(gridElement, rows);
       currentCoils = cachedCoils;
-      updateStatusBar(cachedCoils);
+      currentRows = rows;
+      updateStatCards(cachedCoils);
     } else {
       showToast('Failed to load inventory: ' + error.message, 'error');
     }
@@ -170,7 +87,255 @@ export async function refreshGrid() {
 }
 
 /**
- * Update grid cells with coil data
+ * Transpose coil data to row-based structure
+ * Machine has 10 rows, each row is 1 coil that holds max 10 units
+ * @param {Array} coils - Array of coil objects
+ * @returns {Array} Array of row objects
+ */
+function transposeToRows(coils) {
+  const rows = [];
+
+  // We only have 10 coils total (A1 through J1)
+  // Each coil is displayed as one row
+  const coilIds = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1'];
+
+  coilIds.forEach((coilId, index) => {
+    const coil = coils.find(c => c.id === coilId);
+
+    if (!coil) {
+      console.warn(`Coil ${coilId} not found`);
+      return;
+    }
+
+    const inventory = coil.inventory || 0;
+    const maxStock = 10; // Each coil holds max 10 units
+    const capacityPercent = Math.round((inventory / maxStock) * 100);
+
+    // Determine status
+    let status = 'ACTIVE';
+    let statusClass = 'text-emerald-500 bg-emerald-500/10';
+
+    if (coil.status === 'jammed') {
+      status = 'JAMMED';
+      statusClass = 'text-red-500 bg-red-500/10';
+    } else if (inventory === 0) {
+      status = 'EMPTY';
+      statusClass = 'text-slate-500 bg-slate-500/10';
+    } else if (inventory <= 2) {
+      status = 'LOW STOCK';
+      statusClass = 'text-orange-500 bg-orange-500/10';
+    }
+
+    rows.push({
+      rowNumber: index + 1,
+      coil: coil,
+      product: determineRowProduct(coil, index + 1),
+      totalStock: inventory,
+      maxStock,
+      capacityPercent,
+      status,
+      statusClass
+    });
+  });
+
+  return rows;
+}
+
+/**
+ * Determine which product is assigned to a row
+ * @param {object} coil - Coil object
+ * @param {number} rowNum - Row number (1-10)
+ * @returns {object} Product info
+ */
+function determineRowProduct(coil, rowNum) {
+  // For now, use placeholder product names based on row
+  // In the future, this could pull from product links API
+  const productNames = [
+    'Cola Classic',
+    'Snickers Bar',
+    'Lays Classic',
+    'Dasani Water',
+    'M&Ms Peanut',
+    'Doritos Nacho',
+    'Sprite',
+    'KitKat',
+    'Cheetos',
+    'Dr Pepper'
+  ];
+
+  return {
+    name: productNames[rowNum - 1] || `Product ${rowNum}`,
+    icon: 'inventory_2' // Material icon name
+  };
+}
+
+/**
+ * Render the grid with row-based layout
+ * @param {HTMLElement} gridElement - Grid container
+ * @param {Array} rows - Array of row objects
+ */
+function renderGrid(gridElement, rows) {
+  if (!gridElement || !Array.isArray(rows)) {
+    console.error('Invalid grid or rows data');
+    return;
+  }
+
+  // Build HTML for grid
+  let html = `
+    <!-- Grid Header -->
+    <div class="grid grid-cols-[260px_1fr] border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e2732] sticky top-0 z-10">
+      <div class="h-10 flex items-center px-4 font-bold text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wide">
+        Product Assignment
+      </div>
+      <div class="h-10 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400">Inventory</div>
+    </div>
+
+    <!-- Grid Body -->
+    <div class="flex flex-col divide-y divide-slate-200 dark:divide-slate-800">
+  `;
+
+  // Render each row
+  rows.forEach(row => {
+    html += renderRow(row);
+  });
+
+  html += `</div>`;
+
+  gridElement.innerHTML = html;
+
+  // Attach event listeners
+  attachCoilClickHandlers();
+}
+
+/**
+ * Render a single row
+ * @param {object} row - Row data
+ * @returns {string} HTML string
+ */
+function renderRow(row) {
+  const coil = row.coil;
+  const statusColor = getCoilStatusColor(coil);
+  const barHeight = Math.round((coil.inventory / 10) * 100);
+
+  return `
+    <div data-row="${row.rowNumber}" class="grid grid-cols-[260px_1fr] h-28 group/row cursor-pointer hover:bg-slate-50 dark:hover:bg-[#0d1117]" data-coil-id="${coil.id}">
+      <!-- Left: Product Info -->
+      <div class="relative flex flex-col justify-center p-4 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e2732] transition-colors">
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xl font-bold text-slate-400 dark:text-slate-500">Row ${row.rowNumber}</span>
+          <span class="text-[10px] uppercase font-bold ${row.statusClass} px-1.5 py-0.5 rounded">${row.status}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 shrink-0 flex items-center justify-center bg-slate-200 dark:bg-slate-700 rounded">
+            <span class="material-symbols-outlined text-slate-600 dark:text-slate-400">${row.product.icon}</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-sm text-slate-900 dark:text-white truncate">${row.product.name}</span>
+            <span class="text-xs text-slate-500">Coil: <span class="font-semibold">${coil.id}</span> • Stock: <span class="font-semibold text-primary">${row.totalStock}/${row.maxStock}</span></span>
+          </div>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden mt-3">
+          <div class="bg-primary h-full transition-all duration-300" style="width: ${row.capacityPercent}%"></div>
+        </div>
+      </div>
+
+      <!-- Right: Single Coil Visual (0-10 units) -->
+      <div class="relative p-6 flex items-center justify-center" data-inventory="${coil.inventory}">
+        <!-- Horizontal bar showing 0-10 units -->
+        <div class="w-full max-w-md">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-slate-400">${coil.id}</span>
+            <span class="text-sm font-bold ${coil.inventory === 0 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}">${coil.inventory} / 10</span>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-700/50 rounded-full h-8 relative overflow-hidden">
+            <div class="h-full ${statusColor} transition-all duration-300" style="width: ${barHeight}%"></div>
+          </div>
+          ${coil.status === 'jammed' ? `
+            <div class="flex items-center gap-1 mt-2 text-red-500 text-xs">
+              <span class="material-symbols-outlined text-[14px]">error</span>
+              <span>Jammed</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render a single coil cell
+ * @param {object} coil - Coil data
+ * @returns {string} HTML string
+ */
+function renderCoilCell(coil) {
+  const statusColor = getCoilStatusColor(coil);
+  const barHeight = Math.round((coil.inventory / 10) * 100);
+
+  return `
+    <div class="relative p-2 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center justify-end hover:bg-slate-50 dark:hover:bg-[#1e2732] transition-colors cursor-pointer group"
+         data-coil-id="${coil.id}"
+         data-inventory="${coil.inventory}">
+      <span class="absolute top-1.5 left-2 text-[10px] font-bold text-slate-400 group-hover:text-primary">${coil.id}</span>
+
+      <!-- Vertical bar -->
+      <div class="w-3 bg-slate-100 dark:bg-slate-700/50 rounded-full h-12 relative overflow-hidden flex flex-col justify-end">
+        <div class="w-full ${statusColor}" style="height: ${barHeight}%"></div>
+      </div>
+
+      <span class="mt-2 text-[10px] font-medium ${coil.inventory === 0 ? 'text-red-500' : 'text-slate-500'}">${coil.inventory}</span>
+
+      ${coil.status === 'jammed' ? `
+        <span class="absolute top-1.5 right-1.5 material-symbols-outlined text-red-500 text-[12px]">error</span>
+      ` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Get status color for coil
+ * @param {object} coil - Coil data
+ * @returns {string} Tailwind color class
+ */
+function getCoilStatusColor(coil) {
+  if (coil.status === 'jammed') return 'bg-red-500';
+  if (coil.inventory === 0) return 'bg-slate-300 dark:bg-slate-600';
+  if (coil.inventory <= 2) return 'bg-orange-500';
+  return 'bg-primary';
+}
+
+/**
+ * Attach click handlers to all coil cells
+ */
+function attachCoilClickHandlers() {
+  const coilCells = document.querySelectorAll('[data-coil-id]');
+
+  coilCells.forEach(cell => {
+    cell.addEventListener('click', () => {
+      const coilId = cell.dataset.coilId;
+      handleCoilClick(coilId);
+    });
+  });
+}
+
+/**
+ * Handle coil cell click
+ * @param {string} coilId - Coil ID (e.g., "A1")
+ */
+function handleCoilClick(coilId) {
+  const coil = currentCoils.find(c => c.id === coilId);
+
+  if (!coil) {
+    console.warn(`Coil not found: ${coilId}`);
+    return;
+  }
+
+  // Show edit panel
+  showEditPanel(coil);
+}
+
+/**
+ * Update grid (called after data changes)
+ * @param {Array} newCoils - Updated coils data
  */
 export function updateGrid(newCoils) {
   if (!Array.isArray(newCoils)) {
@@ -178,121 +343,22 @@ export function updateGrid(newCoils) {
     return;
   }
 
-  // Detect changes for efficient updates
-  const changes = detectInventoryChanges(currentCoils, newCoils);
+  currentCoils = newCoils;
+  const rows = transposeToRows(newCoils);
+  currentRows = rows;
 
-  // Update changed cells only
-  const cellsToUpdate = [
-    ...changes.added,
-    ...changes.updated.map(u => u.new)
-  ];
-
-  cellsToUpdate.forEach(coil => {
-    updateCoilCell(coil);
-  });
-
-  // If this is the first load, update all cells
-  if (currentCoils.length === 0) {
-    newCoils.forEach(coil => {
-      updateCoilCell(coil);
-    });
+  const gridElement = document.getElementById('coil-grid');
+  if (gridElement) {
+    renderGrid(gridElement, rows);
   }
+
+  // Update stat cards
+  updateStatCards(newCoils);
 }
 
 /**
- * Update a single coil cell
- */
-function updateCoilCell(coil) {
-  const cellElement = document.getElementById(`cell-${coil.id}`);
-
-  if (!cellElement) {
-    console.warn(`Cell not found: ${coil.id}`);
-    return;
-  }
-
-  // Get status class
-  const statusClass = getCoilStatusClass(coil);
-
-  // Update cell classes
-  cellElement.className = `coil-cell coil-${statusClass}`;
-
-  // Add linked indicator
-  if (isCoilLinked(coil)) {
-    cellElement.classList.add('coil-linked');
-  }
-
-  // Update inventory count
-  const inventoryElement = cellElement.querySelector('.coil-inventory');
-  if (inventoryElement) {
-    inventoryElement.textContent = coil.inventory;
-  }
-
-  // Update status icon
-  const statusIcon = cellElement.querySelector('.coil-status-icon');
-  if (statusIcon) {
-    statusIcon.innerHTML = getStatusIcon(coil);
-  }
-
-  // Store coil data on element
-  cellElement.dataset.coil = JSON.stringify(coil);
-}
-
-/**
- * Get status icon SVG
- */
-function getStatusIcon(coil) {
-  if (coil.status === 'jammed') {
-    return '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 15h14L8 1z" fill="#ef4444"/><text x="8" y="12" text-anchor="middle" fill="white" font-size="10" font-weight="bold">!</text></svg>';
-  }
-
-  if (coil.inventory <= 2 && coil.inventory > 0) {
-    return '<svg width="16" height="16" viewBox="0 0 16 16" fill="#f59e0b"><path d="M8 2L3 14h10L8 2z"/></svg>';
-  }
-
-  return '';
-}
-
-/**
- * Update status bar with counts
- */
-function updateStatusBar(coils) {
-  if (!Array.isArray(coils)) {
-    return;
-  }
-
-  const lowStockCount = coils.filter(c => c.inventory <= 2 && c.inventory > 0).length;
-  const jammedCount = coils.filter(c => c.status === 'jammed').length;
-
-  const lowStockElement = document.getElementById('low-stock-count');
-  const jammedElement = document.getElementById('jammed-count');
-
-  if (lowStockElement) {
-    lowStockElement.textContent = `${lowStockCount} coil${lowStockCount !== 1 ? 's' : ''}`;
-    lowStockElement.style.color = lowStockCount > 0 ? '#f59e0b' : 'inherit';
-    lowStockElement.style.fontWeight = lowStockCount > 0 ? '700' : '500';
-  }
-
-  if (jammedElement) {
-    jammedElement.textContent = `${jammedCount} coil${jammedCount !== 1 ? 's' : ''}`;
-    jammedElement.style.color = jammedCount > 0 ? '#ef4444' : 'inherit';
-    jammedElement.style.fontWeight = jammedCount > 0 ? '700' : '500';
-  }
-}
-
-/**
- * Update last sync time display
- */
-function updateLastSyncTime() {
-  const lastSyncElement = document.getElementById('last-sync-text');
-
-  if (lastSyncElement) {
-    const now = new Date();
-    lastSyncElement.textContent = now.toLocaleTimeString();
-  }
-}
-
-/**
- * Get current coils
+ * Get current coils data
+ * @returns {Array} Current coils
  */
 export function getCurrentCoils() {
   return currentCoils;
@@ -303,8 +369,15 @@ export function getCurrentCoils() {
  */
 export function clearGrid() {
   currentCoils = [];
+  currentRows = [];
+
   const gridElement = document.getElementById('coil-grid');
   if (gridElement) {
-    renderGridStructure(gridElement);
+    gridElement.innerHTML = `
+      <div class="flex flex-col items-center justify-center gap-4 p-12">
+        <span class="material-symbols-outlined text-6xl text-slate-300">inventory_2</span>
+        <p class="text-slate-500">No inventory data loaded</p>
+      </div>
+    `;
   }
 }

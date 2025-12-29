@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.VideoView
@@ -20,6 +21,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.myapplication.database.InventoryRepository
+import com.example.myapplication.database.models.Coil
+import com.example.myapplication.database.models.Transaction
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
@@ -29,13 +33,14 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var videoView: VideoView
     private lateinit var imageView: ImageView
     private var videoFileName: String? = null
-    
+
     // Product data
     private var basePrice: Double = 0.0
     private var previousPrice: Double = 0.0
     private var quantity: Int = 1
     private var ageRestriction: Int = -1
-    
+    private var productName: String = ""
+
     // UI References
     private lateinit var textQuantity: TextView
     private lateinit var textPrice: TextView
@@ -43,7 +48,12 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var btnQuantityMinus: ImageButton
     private lateinit var btnQuantityPlus: ImageButton
     private lateinit var btnAddToCart: Button
-    
+    private lateinit var outOfStockBanner: LinearLayout
+
+    // Inventory
+    private lateinit var inventoryRepo: InventoryRepository
+    private var assignedCoil: Coil? = null
+
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
 
     private lateinit var idScanLauncher: ActivityResultLauncher<Intent>
@@ -58,8 +68,11 @@ class ProductDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_detail)
 
+        // Initialize inventory repository
+        inventoryRepo = InventoryRepository.getInstance(this)
+
         // Get Intent data
-        val name = intent.getStringExtra("name") ?: ""
+        productName = intent.getStringExtra("name") ?: ""
         basePrice = intent.getDoubleExtra("price", 0.0)
         previousPrice = intent.getDoubleExtra("previousPrice", 0.0)
         val imageRes = intent.getIntExtra("imageRes", 0)
@@ -77,31 +90,33 @@ class ProductDetailActivity : AppCompatActivity() {
 
         // Initialize views
         initializeViews()
-        
+
+        // Determine which coil this product uses and check inventory
+        assignedCoil = determineCoilForProduct(productName)
+        checkInventoryAndUpdateUI()
+
         // Register Activity Result Launcher for ID Scan
         idScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 Toast.makeText(this, "Verification Successful! Proceeding to checkout...", Toast.LENGTH_SHORT).show()
-                // Proceed with checkout logic (e.g., add to cart, open checkout screen)
-                val totalPrice = basePrice * quantity
-                Toast.makeText(this, "Added to cart! Total: ${currencyFormatter.format(totalPrice)}", Toast.LENGTH_SHORT).show()
+                processCheckout()
             } else {
                 Toast.makeText(this, "Verification Failed or Cancelled.", Toast.LENGTH_SHORT).show()
             }
         }
-        
+
         // Setup product information
-        setupProductInfo(name, basePrice, previousPrice, description)
+        setupProductInfo(productName, basePrice, previousPrice, description)
         setupFlavorInfo(flavor, nicotineStrength)
         setupRating(rating, reviewCount)
         setupSpecifications(nicotineStrength, pouchesPerCan, flavorProfile, format)
-        
+
         // Setup quantity controls
         setupQuantityControls()
-        
+
         // Initialize button text with initial price
         updateQuantityDisplay()
-        
+
         // Setup image/video
         setupMedia(imageRes)
 
@@ -122,6 +137,9 @@ class ProductDetailActivity : AppCompatActivity() {
         btnQuantityMinus = findViewById(R.id.btn_quantity_minus)
         btnQuantityPlus = findViewById(R.id.btn_quantity_plus)
         btnAddToCart = findViewById(R.id.btn_add_to_cart)
+
+        // Initialize out-of-stock banner (will be created programmatically if needed)
+        outOfStockBanner = findViewById(R.id.out_of_stock_banner)
 
         // Setup back button
         findViewById<ImageView>(R.id.btn_back).setOnClickListener {
@@ -190,12 +208,33 @@ class ProductDetailActivity : AppCompatActivity() {
         
         val addToCartBtn = findViewById<Button>(R.id.btn_add_to_cart)
         addToCartBtn.setOnClickListener {
-            // Toast.makeText(this, "Checking Age: $ageRestriction", Toast.LENGTH_SHORT).show()
+            // Check inventory before proceeding
+            val coil = assignedCoil
+            if (coil == null) {
+                Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (coil.inventory == 0) {
+                Toast.makeText(this, "This item is currently out of stock", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (coil.isJammed()) {
+                Toast.makeText(this, "This item is temporarily unavailable (jammed)", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (coil.inventory < quantity) {
+                Toast.makeText(this, "Only ${coil.inventory} units available", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             Log.d("ProductDetailActivity", "Buy Now Clicked. Age Restriction: $ageRestriction")
-            
+
             // FORCE AGE CHECK FOR DEMO
             val checkAge = if (ageRestriction > 0) ageRestriction else 21
-            
+
             if (checkAge > 0) {
                 Log.d("ProductDetailActivity", "Launching ID Scan")
                 // Launch ID Verification
@@ -204,9 +243,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 idScanLauncher.launch(intent)
             } else {
                 Log.d("ProductDetailActivity", "Proceeding to Cart (No Restriction)")
-                // No age restriction, proceed to cart
-                val totalPrice = basePrice * quantity
-                Toast.makeText(this, "Added to cart! Total: ${currencyFormatter.format(totalPrice)}", Toast.LENGTH_SHORT).show()
+                processCheckout()
             }
         }
     }
@@ -330,6 +367,99 @@ class ProductDetailActivity : AppCompatActivity() {
         super.onResume()
         if (::videoView.isInitialized && videoView.visibility == View.VISIBLE && !videoView.isPlaying) {
             videoView.start()
+        }
+        // Refresh inventory when returning to screen
+        checkInventoryAndUpdateUI()
+    }
+
+    /**
+     * Determine which coil this product uses
+     * TODO: Replace with actual product-to-coil mapping from database
+     */
+    private fun determineCoilForProduct(productName: String): Coil? {
+        // Simplified mapping: Hash product name to coil (A1-J1)
+        val coilIds = listOf("A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1", "J1")
+        val index = (productName.hashCode() and 0x7FFFFFFF) % coilIds.size
+        val coilId = coilIds[index]
+
+        Log.d("ProductDetailActivity", "Product '$productName' mapped to coil $coilId")
+        return inventoryRepo.getCoil(coilId)
+    }
+
+    /**
+     * Check inventory and update UI accordingly
+     */
+    private fun checkInventoryAndUpdateUI() {
+        val coil = assignedCoil ?: return
+
+        // Refresh coil data
+        assignedCoil = inventoryRepo.getCoil(coil.id)
+        val refreshedCoil = assignedCoil ?: return
+
+        // Show/hide out-of-stock banner
+        if (refreshedCoil.inventory == 0 || refreshedCoil.isJammed()) {
+            outOfStockBanner?.visibility = View.VISIBLE
+            btnAddToCart.isEnabled = false
+            btnAddToCart.alpha = 0.5f
+
+            val message = if (refreshedCoil.isJammed()) {
+                "⚠ This item is temporarily unavailable"
+            } else {
+                "⚠ This item is currently out of stock"
+            }
+            outOfStockBanner?.findViewById<TextView>(R.id.out_of_stock_text)?.text = message
+        } else {
+            outOfStockBanner?.visibility = View.GONE
+            btnAddToCart.isEnabled = true
+            btnAddToCart.alpha = 1.0f
+        }
+
+        // Show low stock warning
+        if (refreshedCoil.isLowStock()) {
+            Toast.makeText(this, "Only ${refreshedCoil.inventory} units remaining", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Process checkout after age verification (if required)
+     */
+    private fun processCheckout() {
+        val coil = assignedCoil ?: return
+
+        val totalPrice = basePrice * quantity
+        Log.d("ProductDetailActivity", "Processing checkout: $quantity units from coil ${coil.id}")
+
+        // Decrement inventory
+        var vendSuccess = true
+        repeat(quantity) {
+            if (!inventoryRepo.decrementInventory(coil.id)) {
+                vendSuccess = false
+            }
+        }
+
+        if (vendSuccess) {
+            // Log transaction(s)
+            repeat(quantity) {
+                val transactionId = inventoryRepo.logTransaction(coil.id, Transaction.STATUS_SUCCESS)
+                Log.d("ProductDetailActivity", "Logged transaction: $transactionId")
+            }
+
+            // Show success message
+            Toast.makeText(
+                this,
+                "Purchase successful! Total: ${currencyFormatter.format(totalPrice)}",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            // TODO: Trigger actual vend command via HardwareService here
+            // For now, just simulate success
+
+            // Refresh inventory display
+            checkInventoryAndUpdateUI()
+        } else {
+            // Failed to decrement (inventory mismatch)
+            Toast.makeText(this, "Purchase failed: Insufficient inventory", Toast.LENGTH_SHORT).show()
+            checkInventoryAndUpdateUI()
         }
     }
 }

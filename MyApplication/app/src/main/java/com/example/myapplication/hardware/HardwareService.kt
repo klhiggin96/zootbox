@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Binder
@@ -23,10 +24,11 @@ import kotlinx.coroutines.cancel
 class HardwareService : Service() {
     private val binder = LocalBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    
+
     private lateinit var usbManager: UsbManager
     private var idScannerManager: IdScannerManager? = null
     private var nayaxPaymentManager: NayaxPaymentManager? = null
+    private var usbReceiver: UsbConnectionReceiver? = null
     
     companion object {
         private const val CHANNEL_ID = "HardwareServiceChannel"
@@ -57,8 +59,21 @@ class HardwareService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
+
+        // Unregister USB receiver
+        usbReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Already unregistered
+            }
+        }
+        usbReceiver = null
+
+        // Close hardware connections
         idScannerManager?.close()
         nayaxPaymentManager?.close()
+
         serviceScope.cancel()
     }
     
@@ -92,22 +107,22 @@ class HardwareService : Service() {
     }
     
     private fun initializeHardware() {
-        // HARDWARE DISABLED FOR FRONTEND DEVELOPMENT
-        /*
         // Initialize ID Scanner (E-Seek M260)
         val idScannerDevice = findUsbDevice(ID_SCANNER_VID, ID_SCANNER_PID)
         if (idScannerDevice != null) {
             idScannerManager = IdScannerManager(usbManager, idScannerDevice, serviceScope)
             idScannerManager?.initialize()
         }
-        
+
         // Initialize Nayax Payment Reader
         val nayaxDevice = findUsbDevice(NAYAX_VID, NAYAX_PID)
         if (nayaxDevice != null) {
             nayaxPaymentManager = NayaxPaymentManager(usbManager, nayaxDevice, NAYAX_TTY_ACM, serviceScope)
             nayaxPaymentManager?.initialize()
         }
-        */
+
+        // Setup USB connection monitoring
+        setupUsbMonitoring()
     }
     
     private fun findUsbDevice(vid: Int, pid: Int): UsbDevice? {
@@ -115,7 +130,41 @@ class HardwareService : Service() {
             device.vendorId == vid && device.productId == pid
         }
     }
-    
+
+    private fun setupUsbMonitoring() {
+        usbReceiver = UsbConnectionReceiver(
+            onDeviceAttached = { device ->
+                when {
+                    device.vendorId == ID_SCANNER_VID && device.productId == ID_SCANNER_PID -> {
+                        // Re-initialize ID Scanner
+                        // idScannerManager?.reconnect() // TODO: implement reconnect
+                    }
+                    device.vendorId == NAYAX_VID && device.productId == NAYAX_PID -> {
+                        // Re-initialize Nayax Payment Reader
+                        // nayaxPaymentManager?.reconnect() // TODO: implement reconnect
+                    }
+                }
+            },
+            onDeviceDetached = { device ->
+                when {
+                    device.vendorId == ID_SCANNER_VID && device.productId == ID_SCANNER_PID -> {
+                        idScannerManager?.close()
+                    }
+                    device.vendorId == NAYAX_VID && device.productId == NAYAX_PID -> {
+                        nayaxPaymentManager?.close()
+                    }
+                }
+            }
+        )
+
+        // Register receiver for USB events
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        }
+        registerReceiver(usbReceiver, filter)
+    }
+
     fun getIdScannerManager(): IdScannerManager? = idScannerManager
     fun getNayaxPaymentManager(): NayaxPaymentManager? = nayaxPaymentManager
 }

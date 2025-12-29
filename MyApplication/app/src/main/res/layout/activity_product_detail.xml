@@ -402,6 +402,29 @@
                         android:contentDescription="Increase quantity" />
                 </LinearLayout>
 
+                <!-- Out of Stock Banner -->
+                <LinearLayout
+                    android:id="@+id/out_of_stock_banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="#FFCCBC"
+                    android:padding="16dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/out_of_stock_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚠ This item is currently out of stock"
+                        android:textColor="#D32F2F"
+                        android:textStyle="bold"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
                 <!-- Add to Cart Button -->
                 <Button
                     android:id="@+id/btn_add_to_cart"

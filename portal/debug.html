@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Debug</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #f0f0f0; }
+    .test { margin: 10px 0; padding: 10px; background: white; border-radius: 4px; }
+    .pass { border-left: 4px solid #10b981; }
+    .fail { border-left: 4px solid #ef4444; }
+    .info { border-left: 4px solid #0d7ff2; }
+    pre { background: #1e293b; color: #e2e8f0; padding: 10px; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Portal Debug Tool</h1>
+
+  <div id="tests"></div>
+
+  <script type="module">
+    const output = document.getElementById('tests');
+
+    function log(message, status = 'info') {
+      const div = document.createElement('div');
+      div.className = `test ${status}`;
+      div.innerHTML = message;
+      output.appendChild(div);
+    }
+
+    async function runTests() {
+      log('<h3>1. Testing Machine Configuration</h3>', 'info');
+
+      try {
+        const { getMachines, getCurrentMachineId } = await import('./js/state/machines.js');
+        const machines = getMachines();
+        const currentId = getCurrentMachineId();
+
+        log(`Found ${machines.length} machine(s)`, machines.length > 0 ? 'pass' : 'fail');
+
+        if (machines.length > 0) {
+          log(`<pre>${JSON.stringify(machines, null, 2)}</pre>`);
+        }
+
+        if (currentId) {
+          log(`Current machine: ${currentId}`, 'pass');
+        } else {
+          log('⚠️ No machine selected - go to Settings and add a machine first', 'fail');
+        }
+      } catch (error) {
+        log(`❌ Error loading machines: ${error.message}`, 'fail');
+        console.error(error);
+      }
+
+      log('<h3>2. Testing API Client</h3>', 'info');
+
+      try {
+        const { apiClient } = await import('./js/api/client.js');
+        log('✓ API client loaded', 'pass');
+
+        // Try to fetch coils
+        const coils = await apiClient.get('/api/v1/coils');
+        log(`✓ Successfully fetched ${coils.length} coils from backend`, 'pass');
+        log(`<pre>${JSON.stringify(coils.slice(0, 5), null, 2)}</pre>`);
+
+      } catch (error) {
+        log(`❌ API Error: ${error.message}`, 'fail');
+        log(`<pre>${error.stack}</pre>`);
+      }
+
+      log('<h3>3. Testing Grid Component</h3>', 'info');
+
+      try {
+        const { initCoilGrid } = await import('./js/components/CoilGrid.js');
+        log('✓ CoilGrid component loaded', 'pass');
+      } catch (error) {
+        log(`❌ CoilGrid Error: ${error.message}`, 'fail');
+        log(`<pre>${error.stack}</pre>`);
+      }
+
+      log('<h3>4. Testing Other Components</h3>', 'info');
+
+      try {
+        await import('./js/components/Sidebar.js');
+        log('✓ Sidebar loaded', 'pass');
+      } catch (error) {
+        log(`❌ Sidebar: ${error.message}`, 'fail');
+      }
+
+      try {
+        await import('./js/components/ThemeToggle.js');
+        log('✓ ThemeToggle loaded', 'pass');
+      } catch (error) {
+        log(`❌ ThemeToggle: ${error.message}`, 'fail');
+      }
+
+      try {
+        await import('./js/components/StatCards.js');
+        log('✓ StatCards loaded', 'pass');
+      } catch (error) {
+        log(`❌ StatCards: ${error.message}`, 'fail');
+      }
+
+      try {
+        await import('./js/components/EditPanel.js');
+        log('✓ EditPanel loaded', 'pass');
+      } catch (error) {
+        log(`❌ EditPanel: ${error.message}`, 'fail');
+      }
+
+      log('<h3>✅ Debug Complete</h3>', 'info');
+      log('If you see errors above, check the browser console (F12) for more details.', 'info');
+    }
+
+    runTests().catch(error => {
+      log(`Fatal error: ${error.message}`, 'fail');
+      console.error(error);
+    });
+  </script>
+</body>
+</html>

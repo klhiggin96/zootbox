@@ -6,7 +6,8 @@
     <uses-permission android:name="android.permission.USB_PERMISSION" />
     <uses-feature android:name="android.hardware.usb.host" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     
     <!-- Storage Permissions for Video Playback -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -29,6 +30,8 @@
             android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- USB Device Filters for automatic permission requests -->
@@ -54,14 +57,27 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.MyApplication" />
 
+        <activity
+            android:name=".AdminPanelActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <service
             android:name=".hardware.HardwareService"
             android:enabled="true"
-            android:exported="false">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="hardware_service" />
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice">
         </service>
+
+        <!-- Boot Receiver for auto-start on device boot -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

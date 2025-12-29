@@ -5,68 +5,125 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Machine Settings - ZootBox Portal</title>
 
-  <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/navigation.css">
-  <link rel="stylesheet" href="css/forms.css">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0d7ff2",
+            "background-light": "#f5f7f8",
+            "background-dark": "#101922",
+          },
+          fontFamily: {
+            "display": ["Inter"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
 </head>
-<body>
-  <!-- Navigation -->
-  <div id="nav-container"></div>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden">
 
-  <!-- Main Page Container -->
-  <div class="page-container">
-    <div class="content-wrapper">
+  <div class="flex h-screen w-full bg-background-light dark:bg-background-dark">
 
-      <!-- Page Header -->
-      <div class="page-header">
-        <h1>Machine Settings</h1>
-        <div class="page-actions">
-          <button id="add-machine-btn" class="btn btn-primary">
-            Add Machine
-          </button>
-        </div>
-      </div>
-
-      <!-- Info Card -->
-      <div class="card">
-        <p style="margin: 0;">
-          Configure vending machine connections. Each machine needs a name and endpoint URL (backend API address).
-          Use <strong>http://localhost:8080</strong> for local testing or connect to remote tablets via ADB port forwarding or VPN.
-        </p>
-      </div>
-
-      <!-- Machines List -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Your Machines</h3>
-        </div>
-
-        <div id="machines-list-container">
-          <div class="grid-loading">
-            <div class="loading"></div>
-            <p>Loading machines...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ADB Setup Instructions -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">ADB Port Forwarding Setup</h3>
-        </div>
-        <div style="padding: 16px; font-size: 14px; color: var(--text-secondary);">
-          <p>To connect to a tablet backend via USB:</p>
-          <ol style="margin: 8px 0; padding-left: 24px;">
-            <li>Connect tablet via USB cable</li>
-            <li>Run: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px;">adb devices</code> (verify connection)</li>
-            <li>Run: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 3px;">adb forward tcp:8080 tcp:8080</code></li>
-            <li>Use endpoint URL: <strong>http://localhost:8080</strong></li>
-          </ol>
-        </div>
-      </div>
-
+    <!-- Left Sidebar -->
+    <div id="sidebar" class="hidden md:flex flex-col w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111418] shrink-0">
+      <!-- Sidebar content will be rendered by Sidebar.js -->
     </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+      <!-- Header -->
+      <header class="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111418] shrink-0">
+        <div class="flex items-center gap-4">
+          <h2 class="text-lg font-bold">Machine Settings</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Theme Toggle -->
+          <div id="theme-toggle-container"></div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-background-light dark:bg-background-dark">
+        <div class="max-w-5xl mx-auto flex flex-col gap-6">
+
+          <!-- Page Header -->
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="text-2xl font-bold mb-2">Machine Configuration</h1>
+              <p class="text-slate-500 dark:text-slate-400 text-sm">
+                Configure vending machine connections. Each machine needs a name and endpoint URL.
+              </p>
+            </div>
+            <button id="add-machine-btn" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              Add Machine
+            </button>
+          </div>
+
+          <!-- Info Card -->
+          <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div class="flex gap-3">
+              <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
+              <div class="text-sm text-blue-900 dark:text-blue-100">
+                <p class="font-medium mb-1">Connection Setup</p>
+                <p class="text-blue-700 dark:text-blue-300">
+                  Use <code class="bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 rounded font-mono text-xs">http://localhost:8080</code> for local testing or connect to remote tablets via ADB port forwarding or VPN.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Machines List -->
+          <div class="bg-white dark:bg-[#111418] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+              <h3 class="text-lg font-bold">Your Machines</h3>
+            </div>
+
+            <div id="machines-list-container" class="p-6">
+              <div class="flex flex-col items-center justify-center gap-4 py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p class="text-slate-500">Loading machines...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADB Setup Instructions -->
+          <div class="bg-white dark:bg-[#111418] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+              <h3 class="text-lg font-bold">ADB Port Forwarding Setup</h3>
+            </div>
+            <div class="p-6 text-sm text-slate-600 dark:text-slate-400">
+              <p class="mb-3 font-medium text-slate-900 dark:text-white">To connect to a tablet backend via USB:</p>
+              <ol class="space-y-2 list-decimal list-inside">
+                <li>Connect tablet via USB cable</li>
+                <li>Run: <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono text-xs">adb devices</code> (verify connection)</li>
+                <li>Run: <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono text-xs">adb forward tcp:8080 tcp:8080</code></li>
+                <li>Use endpoint URL: <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-mono text-xs font-bold text-primary">http://localhost:8080</code></li>
+              </ol>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
   </div>
 
   <!-- Toast Container -->
@@ -74,7 +131,8 @@
 
   <!-- JavaScript Modules -->
   <script type="module">
-    import { loadNavigation } from './js/components/Navigation.js';
+    import { initSidebar } from './js/components/Sidebar.js';
+    import { initThemeToggle, createThemeToggleButton } from './js/components/ThemeToggle.js';
     import { refreshMachineList } from './js/components/MachineSelector.js';
     import { getMachines, addMachine, updateMachine, deleteMachine } from './js/state/machines.js';
     import { showToast } from './js/components/Toast.js';
@@ -85,7 +143,18 @@
 
     // Initialize page
     async function initPage() {
-      await loadNavigation();
+      // Initialize theme toggle
+      initThemeToggle();
+
+      // Add theme toggle button to header
+      const themeToggleContainer = document.getElementById('theme-toggle-container');
+      if (themeToggleContainer) {
+        const toggleBtn = createThemeToggleButton({ iconOnly: true });
+        themeToggleContainer.appendChild(toggleBtn);
+      }
+
+      // Initialize sidebar
+      initSidebar();
 
       // Load machines
       loadMachines();
@@ -101,9 +170,10 @@
 
       if (machines.length === 0) {
         container.innerHTML = `
-          <div class="empty-state">
-            <h2>No Machines Configured</h2>
-            <p>Click "Add Machine" to configure your first vending machine.</p>
+          <div class="flex flex-col items-center justify-center gap-4 py-12">
+            <span class="material-symbols-outlined text-6xl text-slate-300">devices</span>
+            <h2 class="text-xl font-bold text-slate-700 dark:text-slate-300">No Machines Configured</h2>
+            <p class="text-slate-500 dark:text-slate-400">Click "Add Machine" to configure your first vending machine.</p>
           </div>
         `;
         return;
@@ -112,75 +182,109 @@
       renderMachinesList(machines);
     }
 
-    // Render machines list
+    // Render machines list as table
     function renderMachinesList(machines) {
       const container = document.getElementById('machines-list-container');
 
-      const table = document.createElement('table');
-      table.className = 'table';
-
-      // Table header
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th>Name</th>
-          <th>Endpoint URL</th>
-          <th>Status</th>
-          <th>Last Sync</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
+      let html = `
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-slate-50 dark:bg-[#1e2732] border-b border-slate-200 dark:border-slate-800">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Endpoint URL</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Last Sync</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Created</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       `;
-      table.appendChild(thead);
-
-      // Table body
-      const tbody = document.createElement('tbody');
 
       machines.forEach(machine => {
-        const row = document.createElement('tr');
+        const statusColors = {
+          online: 'bg-emerald-500/10 text-emerald-500',
+          offline: 'bg-slate-500/10 text-slate-500',
+          error: 'bg-red-500/10 text-red-500'
+        };
+        const statusClass = statusColors[machine.status] || statusColors.offline;
 
-        row.innerHTML = `
-          <td><strong>${machine.name}</strong></td>
-          <td><code>${machine.endpointUrl}</code></td>
-          <td>
-            <span class="status-indicator ${machine.status || 'offline'}">
-              ${machine.status || 'offline'}
-            </span>
-          </td>
-          <td>${machine.lastSyncTime ? formatDateTime(machine.lastSyncTime) : 'Never'}</td>
-          <td>${formatDateTime(machine.createdAt)}</td>
-          <td>
-            <button class="btn btn-sm btn-secondary" data-machine-id="${machine.id}" data-action="edit">Edit</button>
-            <button class="btn btn-sm btn-secondary" data-machine-id="${machine.id}" data-action="test">Test</button>
-            <button class="btn btn-sm btn-danger" data-machine-id="${machine.id}" data-action="delete">Delete</button>
-          </td>
+        html += `
+          <tr class="hover:bg-slate-50 dark:hover:bg-[#1e2732] transition-colors">
+            <td class="px-4 py-4">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 flex items-center justify-center bg-primary/10 rounded-lg">
+                  <span class="material-symbols-outlined text-primary">devices</span>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white">${machine.name}</span>
+              </div>
+            </td>
+            <td class="px-4 py-4">
+              <code class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">${machine.endpointUrl}</code>
+            </td>
+            <td class="px-4 py-4">
+              <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold uppercase ${statusClass}">
+                ${machine.status || 'offline'}
+              </span>
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
+              ${machine.lastSyncTime ? formatDateTime(machine.lastSyncTime) : 'Never'}
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">
+              ${formatDateTime(machine.createdAt)}
+            </td>
+            <td class="px-4 py-4 text-right">
+              <div class="flex justify-end gap-2">
+                <button class="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors" data-machine-id="${machine.id}" data-action="edit">
+                  Edit
+                </button>
+                <button class="px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors" data-machine-id="${machine.id}" data-action="test">
+                  Test
+                </button>
+                <button class="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors" data-machine-id="${machine.id}" data-action="delete">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
         `;
-
-        tbody.appendChild(row);
       });
 
-      table.appendChild(tbody);
-      container.innerHTML = '';
-      container.appendChild(table);
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      container.innerHTML = html;
 
       // Add button handlers
       const buttons = container.querySelectorAll('button[data-machine-id]');
+      console.log(`Found ${buttons.length} machine action buttons`);
       buttons.forEach(button => {
         const machineId = button.dataset.machineId;
         const action = button.dataset.action;
 
         button.addEventListener('click', async () => {
+          console.log(`Button clicked: action=${action}, machineId=${machineId}`);
           const machine = machines.find(m => m.id === machineId);
-          if (!machine) return;
+          if (!machine) {
+            console.error('Machine not found:', machineId);
+            return;
+          }
 
           switch (action) {
             case 'edit':
+              console.log('Opening edit modal');
               showEditMachineModal(machine);
               break;
             case 'test':
+              console.log('Testing connection');
               await testConnection(machine);
               break;
             case 'delete':
+              console.log('Deleting machine');
               await handleDelete(machine);
               break;
           }
@@ -191,17 +295,18 @@
     // Show add machine modal
     function showAddMachineModal() {
       const content = document.createElement('div');
+      content.className = 'space-y-4';
       content.innerHTML = `
-        <div class="form-group">
-          <label for="machine-name-input" class="form-label">Machine Name</label>
-          <input type="text" id="machine-name-input" class="form-input" placeholder="e.g., Downtown Location" required />
-          <small class="form-help">A friendly name to identify this machine (1-50 characters)</small>
+        <div>
+          <label for="machine-name-input" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Machine Name</label>
+          <input type="text" id="machine-name-input" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="e.g., Downtown Location" required />
+          <p class="mt-1.5 text-xs text-slate-500">A friendly name to identify this machine (1-50 characters)</p>
         </div>
 
-        <div class="form-group">
-          <label for="machine-url-input" class="form-label">Endpoint URL</label>
-          <input type="url" id="machine-url-input" class="form-input" placeholder="http://localhost:8080" required />
-          <small class="form-help">Backend API base URL (e.g., http://localhost:8080)</small>
+        <div>
+          <label for="machine-url-input" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Endpoint URL</label>
+          <input type="url" id="machine-url-input" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="http://localhost:8080" required />
+          <p class="mt-1.5 text-xs text-slate-500">Backend API base URL (e.g., http://localhost:8080)</p>
         </div>
       `;
 
@@ -233,15 +338,16 @@
     // Show edit machine modal
     function showEditMachineModal(machine) {
       const content = document.createElement('div');
+      content.className = 'space-y-4';
       content.innerHTML = `
-        <div class="form-group">
-          <label for="machine-name-input" class="form-label">Machine Name</label>
-          <input type="text" id="machine-name-input" class="form-input" value="${machine.name}" required />
+        <div>
+          <label for="machine-name-input" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Machine Name</label>
+          <input type="text" id="machine-name-input" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent" value="${machine.name}" required />
         </div>
 
-        <div class="form-group">
-          <label for="machine-url-input" class="form-label">Endpoint URL</label>
-          <input type="url" id="machine-url-input" class="form-input" value="${machine.endpointUrl}" required />
+        <div>
+          <label for="machine-url-input" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Endpoint URL</label>
+          <input type="url" id="machine-url-input" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent" value="${machine.endpointUrl}" required />
         </div>
       `;
 
@@ -348,8 +454,6 @@
 
     // Test connection
     async function testConnection(machine) {
-      showToast('Testing connection...', 'info');
-
       // Temporarily set base URL
       const originalBaseURL = apiClient.baseURL;
       apiClient.setBaseURL(machine.endpointUrl);
@@ -358,16 +462,25 @@
         const result = await apiClient.healthCheck();
 
         if (result.status === 'online') {
-          showToast(`✓ Connection successful! Backend is healthy (uptime: ${result.data.uptime_seconds}s)`, 'success');
-          updateMachine(machine.id, { status: 'online' });
+          const uptime = Math.round(result.data.uptime_seconds);
+
+          // Update machine status
+          updateMachine(machine.id, { status: 'online', lastSyncTime: new Date().toISOString() });
           loadMachines();
+
+          // Show success message
+          alert(`✓ Connection successful!\n\nBackend is healthy\nUptime: ${uptime} seconds`);
         } else {
-          showToast('✗ Connection failed: Backend is not responding', 'error');
+          updateMachine(machine.id, { status: 'offline' });
+          loadMachines();
+          alert(`✗ Connection failed\n\n${result.error || 'Backend is not responding'}`);
         }
 
       } catch (error) {
         console.error('Connection test failed:', error);
-        showToast('✗ Connection failed: ' + error.message, 'error');
+        updateMachine(machine.id, { status: 'error' });
+        loadMachines();
+        alert(`✗ Connection failed\n\n${error.message}`);
       } finally {
         // Restore original base URL
         apiClient.setBaseURL(originalBaseURL);

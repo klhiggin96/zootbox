@@ -53,6 +53,11 @@ func NewRouter(db *sql.DB) *chi.Mux {
 		r.Post("/admin/product-links", adminHandler.CreateProductLink)
 		r.Get("/admin/product-links", adminHandler.GetProductLinks)
 		r.Delete("/admin/product-links/{linkGroupId}", adminHandler.DeleteProductLink)
+
+		// Sync endpoints (Android app inventory synchronization)
+		syncHandler := handlers.NewSyncHandler(db)
+		r.Post("/sync/inventory", syncHandler.SyncInventory)
+		r.Get("/sync/status", syncHandler.GetSyncStatus)
 	})
 
 	return r

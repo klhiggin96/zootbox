@@ -26,27 +26,27 @@ export function showModal(options = {}) {
     closeOnEscape = true
   } = options;
 
-  // Create modal overlay
+  // Create modal overlay with Tailwind styles
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200';
   overlay.id = `modal-${Date.now()}`;
 
-  // Create modal container
+  // Create modal container with Tailwind styles
   const modal = document.createElement('div');
-  modal.className = 'modal';
+  modal.className = 'bg-white dark:bg-[#111418] rounded-xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-200';
 
-  // Modal header
+  // Modal header with Tailwind styles
   const header = document.createElement('div');
-  header.className = 'modal-header';
+  header.className = 'flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800';
 
   const titleElement = document.createElement('h2');
-  titleElement.className = 'modal-title';
+  titleElement.className = 'text-xl font-bold text-slate-900 dark:text-white';
   titleElement.textContent = title;
   header.appendChild(titleElement);
 
   const closeButton = document.createElement('button');
-  closeButton.className = 'modal-close';
-  closeButton.innerHTML = '&times;';
+  closeButton.className = 'p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800';
+  closeButton.innerHTML = '<span class="material-symbols-outlined">close</span>';
   closeButton.addEventListener('click', () => {
     hideModal(overlay.id);
     if (onClose) onClose(null);
@@ -55,9 +55,9 @@ export function showModal(options = {}) {
 
   modal.appendChild(header);
 
-  // Modal body
+  // Modal body with Tailwind styles
   const body = document.createElement('div');
-  body.className = 'modal-body';
+  body.className = 'p-6 text-slate-700 dark:text-slate-300';
 
   if (typeof content === 'string') {
     body.innerHTML = content;
@@ -67,14 +67,25 @@ export function showModal(options = {}) {
 
   modal.appendChild(body);
 
-  // Modal footer (buttons)
+  // Modal footer (buttons) with Tailwind styles
   if (buttons.length > 0) {
     const footer = document.createElement('div');
-    footer.className = 'modal-footer';
+    footer.className = 'flex items-center justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-800';
 
     buttons.forEach(buttonConfig => {
       const button = document.createElement('button');
-      button.className = `btn ${buttonConfig.className || 'btn-secondary'}`;
+
+      // Map button classes to Tailwind
+      let buttonClass = 'px-4 py-2 rounded-lg font-medium transition-colors';
+      if (buttonConfig.className === 'btn-primary') {
+        buttonClass += ' bg-primary text-white hover:bg-blue-600 shadow-lg shadow-primary/20';
+      } else if (buttonConfig.className === 'btn-danger') {
+        buttonClass += ' bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20';
+      } else {
+        buttonClass += ' bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700';
+      }
+
+      button.className = buttonClass;
       button.textContent = buttonConfig.text || 'Button';
 
       if (buttonConfig.onClick) {
@@ -227,8 +238,8 @@ export function promptDialog(message, defaultValue = '', title = 'Input') {
   return new Promise((resolve) => {
     const inputId = `prompt-input-${Date.now()}`;
     const content = `
-      <p>${message}</p>
-      <input type="text" id="${inputId}" class="form-input" value="${defaultValue}" />
+      <p class="mb-4">${message}</p>
+      <input type="text" id="${inputId}" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-transparent" value="${defaultValue}" />
     `;
 
     const modal = showModal({

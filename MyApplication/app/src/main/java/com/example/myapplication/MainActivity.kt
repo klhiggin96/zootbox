@@ -74,7 +74,28 @@ class MainActivity : AppCompatActivity() {
         darkModeToggle.setOnClickListener {
             cycleColorScheme()
         }
-        
+
+        // Setup Admin Access (long-press on orb icon)
+        orbIcon.setOnLongClickListener {
+            // Haptic feedback
+            @Suppress("DEPRECATION")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val vibrator = getSystemService(android.os.VibrationEffect::class.java) as? android.os.Vibrator
+                vibrator?.vibrate(android.os.VibrationEffect.createOneShot(50, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                vibrator?.vibrate(50)
+            }
+
+            // Show toast
+            Toast.makeText(this, "Admin Mode", Toast.LENGTH_SHORT).show()
+
+            // Launch admin panel
+            val intent = Intent(this, AdminPanelActivity::class.java)
+            startActivity(intent)
+            true
+        }
+
         // Setup Navigation Buttons
         findViewById<Button>(R.id.btn_s1).setOnClickListener { openCategory("ZyNS") }
         findViewById<Button>(R.id.btn_s2).setOnClickListener { openCategory("VAPES") }
@@ -94,8 +115,18 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
 
+        // Auto-start backend and Tailscale
+        BootManager.startZootBoxServices(this)
+
+        // Initialize background inventory sync
+        try {
+            com.example.myapplication.sync.BackgroundSyncService.schedulePeriodicSync(this)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to schedule inventory sync: ${e.message}")
+        }
+
         Toast.makeText(this, "USB Connection Active", Toast.LENGTH_LONG).show()
-        
+
         // Setup simple animations for entrance
         setupEntranceAnimations()
     }

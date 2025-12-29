@@ -17,7 +17,7 @@ const SCHEMA_VERSION = '1.0.0';
 /**
  * Initialize LocalStorage schema (run on first load)
  */
-export function initializeStorage() {
+export async function initializeStorage() {
   // Check if metadata exists
   const metadata = getMetadata();
 
@@ -40,6 +40,21 @@ export function initializeStorage() {
   } else {
     // Check for schema migrations
     migrateSchema(metadata.schemaVersion);
+  }
+
+  // Update API client with current machine's endpoint
+  await initializeAPIClient();
+}
+
+/**
+ * Initialize API client with current machine's endpoint URL
+ */
+async function initializeAPIClient() {
+  const currentMachine = getCurrentMachine();
+  if (currentMachine && currentMachine.endpointUrl) {
+    const { apiClient } = await import('../api/client.js');
+    apiClient.setBaseURL(currentMachine.endpointUrl);
+    console.log(`API client initialized with ${currentMachine.endpointUrl}`);
   }
 }
 
@@ -311,6 +326,17 @@ export function setCurrentMachine(machineId) {
   }
 
   updateUIState({ currentMachineId: machineId });
+
+  // Update API client baseURL when machine changes
+  if (machineId) {
+    const machine = getMachine(machineId);
+    if (machine && machine.endpointUrl) {
+      import('../api/client.js').then(({ apiClient }) => {
+        apiClient.setBaseURL(machine.endpointUrl);
+        console.log(`API client updated to ${machine.endpointUrl}`);
+      });
+    }
+  }
 }
 
 /**

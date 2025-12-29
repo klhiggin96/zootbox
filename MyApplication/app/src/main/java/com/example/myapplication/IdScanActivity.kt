@@ -227,13 +227,19 @@ class IdScanActivity : AppCompatActivity() {
     }
     
     private fun finishWithSuccess() {
+        // Clear PII data before finishing
+        hardwareService?.getIdScannerManager()?.clearData()
         setResult(RESULT_OK)
         finish()
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         stopScanningAnimations()
+
+        // Clear PII data on activity destruction
+        hardwareService?.getIdScannerManager()?.clearData()
+
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false
