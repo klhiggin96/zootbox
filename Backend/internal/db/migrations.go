@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -52,7 +51,8 @@ func RunMigrations(db *sql.DB) error {
 		}
 
 		// Read migration SQL
-		sqlBytes, err := migrationsFS.ReadFile(filepath.Join("migrations", filename))
+		// Use forward slashes for embedded filesystem (cross-platform)
+		sqlBytes, err := migrationsFS.ReadFile("migrations/" + filename)
 		if err != nil {
 			return fmt.Errorf("failed to read migration %s: %w", filename, err)
 		}
