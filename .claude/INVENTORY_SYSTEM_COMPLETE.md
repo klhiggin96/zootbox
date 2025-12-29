@@ -282,9 +282,9 @@ TODO: Replace with database-driven product-to-coil mapping table.
 }
 ```
 
-**Database Fix:**
-- **Old:** 100 coils (A1-J10)
-- **New:** 10 coils (A1-J1) - matches actual hardware
+**Database Configuration:**
+- **10 coils (A1-J1)** - matches actual hardware (10 rows, 1 motor per row)
+- Previously incorrectly seeded with 100 coils (A1-J10), now fixed
 
 ### 6. Web Portal Integration
 

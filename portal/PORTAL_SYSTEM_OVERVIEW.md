@@ -84,7 +84,7 @@
 
 #### Key Features:
 - **Multi-machine management**: Configure and switch between multiple tablets
-- **Real-time inventory grid**: Visual 10x10 coil grid (A1-J10) with color-coded status
+- **Real-time inventory grid**: Visual single-column coil grid (A1-J1, 10 rows) with color-coded status
 - **Auto-refresh**: 5-second polling with offline detection and stale data warnings
 - **Admin operations**: Refill coils, manual inventory updates, jam management
 - **Product linking**: Multi-coil products with first-available selection
@@ -107,7 +107,7 @@ portal/
     ├── components/
     │   ├── Navigation.js        # Top nav with machine selector
     │   ├── MachineSelector.js   # Machine dropdown management
-    │   ├── CoilGrid.js         # 10x10 inventory grid
+    │   ├── CoilGrid.js         # Inventory grid (10 rows)
     │   ├── StatusIndicator.js  # Connection/sync status
     │   ├── RefillButton.js     # Bulk refill operation
     │   ├── CoilEditModal.js    # Individual coil editing
@@ -157,7 +157,7 @@ HTTP_PORT=8080
 - `GET /metrics` - Prometheus metrics
 
 **Inventory**:
-- `GET /api/v1/coils` - List all 100 coils (A1-J10)
+- `GET /api/v1/coils` - List all 10 coils (A1-J1)
 - `GET /api/v1/coils/{coilId}` - Get specific coil
 - `GET /api/v1/coils/low-stock` - Get coils with inventory ≤ 2
 
@@ -390,7 +390,7 @@ Portal displays inventory
    ├─→ Reaches tablet backend
    └─→ Backend queries database
 
-3. Backend returns all 100 coils:
+3. Backend returns all 10 coils:
    [
      { "id": "A1", "inventory": 3, "status": "available" },
      { "id": "A2", "inventory": 0, "status": "empty" },
@@ -408,7 +408,7 @@ Portal displays inventory
    └─→ Operator confirms
 
 6. Portal sends POST /api/v1/admin/refill
-   └─→ Backend sets all 100 coils to inventory = 10
+   └─→ Backend sets all 10 coils to inventory = 10
    └─→ Returns success
 
 7. Portal refreshes grid automatically
@@ -688,7 +688,7 @@ adb shell "su -c 'tail -50 /data/data/com.termux/files/home/zootbox/backend.log'
 - **Initial page load**: ~800ms
 - **API request (via VPN)**: 150-300ms
 - **Grid refresh**: ~200ms (with session cache)
-- **Full inventory load**: ~500ms (100 coils)
+- **Full inventory load**: ~100ms (10 coils)
 
 #### Resource Usage:
 - **Backend RAM**: ~15 MB

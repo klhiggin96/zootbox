@@ -4,9 +4,9 @@ A web-based inventory management portal for ZootBox vending machine operators to
 
 ## Features
 
-- **Real-Time Inventory Monitoring**: Display 100 coils per machine in a 10x10 grid (A1-J10) with 5-second auto-refresh
+- **Real-Time Inventory Monitoring**: Display 10 coils per machine in a single-column grid (A1-J1) with 5-second auto-refresh
 - **Multi-Machine Management**: Switch between and manage multiple vending machines from a single portal
-- **Bulk Refill Operations**: Set all 100 coils to maximum inventory (10 units) with one click
+- **Bulk Refill Operations**: Set all 10 coils to maximum inventory (10 units) with one click
 - **Manual Inventory Adjustment**: Edit individual coil inventory levels (0-10)
 - **Jam Event Resolution**: View and resolve jam events to restore coil availability
 - **Product Link Configuration**: Link multiple coils to a single product SKU for automatic coil selection
@@ -64,7 +64,7 @@ portal/
 ├── product-links.html      # Product linking page
 ├── css/                    # Stylesheets
 │   ├── main.css            # Global styles & layout
-│   ├── grid.css            # 10x10 coil grid styles
+│   ├── grid.css            # Coil grid styles (10 rows)
 │   ├── navigation.css      # Top nav bar styles
 │   └── forms.css           # Forms & modals
 ├── js/                     # JavaScript modules
@@ -75,7 +75,7 @@ portal/
 │   │   ├── products.js     # Product link API endpoints
 │   │   └── admin.js        # Admin API endpoints
 │   ├── components/         # UI components
-│   │   ├── CoilGrid.js     # 10x10 grid component
+│   │   ├── CoilGrid.js     # Coil grid component (10 rows)
 │   │   ├── MachineSelector.js  # Machine dropdown
 │   │   ├── StatusIndicator.js  # Online/offline badge
 │   │   └── Modal.js        # Reusable modal dialog
@@ -128,8 +128,8 @@ For detailed documentation, see:
 
 Manual acceptance testing per user story:
 
-- **US1**: Load portal, verify all 100 coils displayed with inventory counts
-- **US2**: Click "Refill All", verify all coils set to inventory=10
+- **US1**: Load portal, verify all 10 coils displayed with inventory counts
+- **US2**: Click "Refill All", verify all 10 coils set to inventory=10
 - **US3**: Edit coil A5 inventory to 7, verify update persists
 - **US4**: Resolve open jam, verify coil status changes to available
 - **US5**: Create product link, verify multiple coils linked to SKU

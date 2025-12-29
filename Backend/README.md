@@ -1,10 +1,10 @@
 # ZootBox Backend Inventory Service
 
-Lightweight Go microservice for managing real-time inventory across 100 vending machine coil slots. Integrates with the ZootBox Android app via localhost REST API.
+Lightweight Go microservice for managing real-time inventory across 10 vending machine coil slots. Integrates with the ZootBox Android app via localhost REST API.
 
 ## Features
 
-- **Real-time Inventory Tracking**: Manage 100 coil positions (A1-J10)
+- **Real-time Inventory Tracking**: Manage 10 coil positions (A1-J1)
 - **Transaction Recording**: Log vend outcomes reported by Android app
 - **Jam Event Management**: Track and resolve motor jam events
 - **Product Linking**: Multi-coil support for high-demand products
@@ -92,7 +92,7 @@ See `contracts/openapi.yaml` for complete API documentation.
 
 ### Admin Endpoints
 
-- `POST /api/v1/admin/refill` - Refill all 100 coils to inventory=10
+- `POST /api/v1/admin/refill` - Refill all 10 coils to inventory=10
 - `PUT /api/v1/admin/coils/{coilId}` - Manually set coil inventory (0-10)
 - `POST /api/v1/admin/product-links` - Create multi-coil product link group
 - `GET /api/v1/admin/product-links` - List all product link groups

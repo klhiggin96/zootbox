@@ -12,7 +12,7 @@
 
 ### ✅ Completed
 1. **All backend code implemented** (Phases 1-8)
-   - Inventory tracking (100 coils A1-J10)
+   - Inventory tracking (10 coils A1-J1)
    - Transaction logging
    - Jam management
    - Admin operations
@@ -178,7 +178,7 @@ Once running, the backend will expose:
 - `GET /metrics` - Prometheus metrics
 
 ### Inventory
-- `GET /api/v1/coils` - List all 100 coils
+- `GET /api/v1/coils` - List all 10 coils
 - `GET /api/v1/coils/{coilId}` - Get specific coil (e.g., A1, B5, J10)
 
 ### Transactions
@@ -295,7 +295,7 @@ adb shell "curl http://localhost:8080/health"
 
 ### What Was Deployed
 ✅ Backend binary built on tablet (13MB ARM64 binary)
-✅ Database migrations completed (100 coils seeded)
+✅ Database migrations completed (10 coils seeded)
 ✅ Service running on tablet (HTTP_HOST=0.0.0.0 HTTP_PORT=8080)
 ✅ API endpoints tested and verified working
 
@@ -324,10 +324,10 @@ adb shell "curl http://localhost:8080/health"
    # Result: {"status":"healthy","uptime_seconds":397,"database_ok":true}
    ```
 
-2. **Get All Coils** (100 coils A1-J10):
+2. **Get All Coils** (10 coils A1-J1):
    ```bash
    curl http://localhost:8080/api/v1/coils
-   # Result: All 100 coils with inventory=10
+   # Result: All 10 coils with inventory=10
    ```
 
 3. **Record Transaction** (inventory decrement):
@@ -375,7 +375,7 @@ adb forward tcp:8080 tcp:8080
 
 ✅ WAL mode enabled (verified with PRAGMA journal_mode)
 ✅ Power loss recovery validation on startup
-✅ 100 coils seeded and queryable
+✅ 10 coils seeded and queryable
 ✅ Transaction recording with atomic inventory updates
 ✅ JSON logging with zerolog
 ✅ Health endpoint operational

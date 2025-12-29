@@ -63,7 +63,12 @@
       "Bash(powershell -Command:*)",
       "Bash(\"C:/Program Files/Go/bin/go.exe\" build -o zootbox-backend.exe ./cmd/server)",
       "Bash(./zootbox-backend.exe:*)",
-      "Bash(set DB_PATH=C:/tmp/zootbox/inventory.db)"
+      "Bash(set DB_PATH=C:/tmp/zootbox/inventory.db)",
+      "Bash(sqlite3:*)",
+      "Bash(\"C:/Program Files/Go/bin/go.exe\" run cmd/server/main.go -migrate)",
+      "Bash(zootbox-backend.exe:*)",
+      "Bash(\"C:/Program Files/Go/bin/go.exe\" list -f '{{.EmbedFiles}}' .)",
+      "Bash(\"C:/Program Files/Go/bin/go.exe\" clean -cache)"
     ],
     "deny": [],
     "ask": []

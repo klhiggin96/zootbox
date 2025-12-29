@@ -16,7 +16,7 @@ erDiagram
     COIL }o--|| PRODUCT_LINK : belongs_to
 
     COIL {
-        string id PK "A1-J10 (row+column)"
+        string id PK "A1-J1 (row identifier)"
         int inventory "0-10"
         string status "available|jammed"
         int version "optimistic_lock"
@@ -78,7 +78,7 @@ erDiagram
 
 ### 1. coils
 
-Primary inventory table tracking 100 coil positions (A1-J10).
+Primary inventory table tracking 10 coil positions (A1-J1, one per row).
 
 ```sql
 CREATE TABLE coils (
@@ -106,7 +106,7 @@ BEGIN
 END;
 ```
 
-**Initial Data**: 100 rows inserted during migration (A1-J10 grid, all inventory=10, status='available').
+**Initial Data**: 10 rows inserted during migration (A1-J1, all inventory=10, status='available').
 
 ---
 

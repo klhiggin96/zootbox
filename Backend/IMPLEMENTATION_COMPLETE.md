@@ -20,7 +20,7 @@ The ZootBox Backend Inventory Service is now **fully implemented** with all plan
 ### Phase 4: Admin Refill Operations
 **Files**: `admin.go` (service + handler)
 
-- Bulk refill all 100 coils to inventory=10
+- Bulk refill all 10 coils to inventory=10
 - Manual inventory override (0-10 range)
 - Transaction-safe operations with rollback
 - Proper error handling and logging
@@ -66,7 +66,7 @@ The ZootBox Backend Inventory Service is now **fully implemented** with all plan
 - Orphaned record detection
 
 **Features**:
-- Validates 100 coils exist
+- Validates 10 coils exist
 - Validates inventory ranges (0-10)
 - Detects orphaned transactions/jam events
 - Verifies WAL journal mode
