@@ -58,6 +58,23 @@ func NewRouter(db *sql.DB) *chi.Mux {
 		syncHandler := handlers.NewSyncHandler(db)
 		r.Post("/sync/inventory", syncHandler.SyncInventory)
 		r.Get("/sync/status", syncHandler.GetSyncStatus)
+
+		// Product catalog endpoints (Nayax payment integration)
+		productHandler := handlers.NewProductHandler(db)
+		r.Get("/products", productHandler.ListProducts)
+		r.Get("/products/{id}", productHandler.GetProduct)
+		r.Post("/products", productHandler.CreateProduct)                        // Admin
+		r.Put("/products/{id}", productHandler.UpdateProduct)                    // Admin
+		r.Post("/products/{id}/assign-coil", productHandler.AssignProductToCoil) // Admin
+
+		// Shopping cart endpoints (multi-item purchases)
+		cartHandler := handlers.NewCartHandler(db)
+		r.Post("/cart/create", cartHandler.CreateCart)
+		r.Post("/cart/{id}/add-item", cartHandler.AddItemToCart)
+		r.Delete("/cart/{id}/remove-item/{item_id}", cartHandler.RemoveItemFromCart)
+		r.Get("/cart/{id}", cartHandler.GetCart)
+		r.Post("/cart/{id}/checkout", cartHandler.CheckoutCart)
+		r.Post("/cart/{id}/cancel", cartHandler.CancelCart)
 	})
 
 	return r

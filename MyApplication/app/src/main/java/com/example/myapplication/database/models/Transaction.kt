@@ -13,12 +13,32 @@ data class Transaction(
     val coilId: String,              // Coil that was vended (A1-J1)
     val status: String,              // 'success', 'jam', or 'failed'
     val timestamp: Long,             // Unix timestamp (seconds)
-    val synced: Boolean = false      // Whether synced to backend
+    val synced: Boolean = false,     // Whether synced to backend
+
+    // Payment fields (added for Nayax integration)
+    val amount: Double? = null,                 // Transaction amount in USD
+    val paymentMethod: String? = null,          // 'card', 'nfc', 'cash', 'free'
+    val paymentStatus: String? = null,          // 'pending', 'approved', 'declined', 'refunded'
+    val currency: String? = "USD",              // Currency code
+    val nayaxTransactionId: String? = null,     // Nayax transaction ID from VPOS Touch
+    val productId: String? = null               // Product SKU
 ) {
     companion object {
         const val STATUS_SUCCESS = "success"
         const val STATUS_JAM = "jam"
         const val STATUS_FAILED = "failed"
+
+        // Payment methods
+        const val PAYMENT_METHOD_CARD = "card"
+        const val PAYMENT_METHOD_NFC = "nfc"
+        const val PAYMENT_METHOD_CASH = "cash"
+        const val PAYMENT_METHOD_FREE = "free"
+
+        // Payment statuses
+        const val PAYMENT_STATUS_PENDING = "pending"
+        const val PAYMENT_STATUS_APPROVED = "approved"
+        const val PAYMENT_STATUS_DECLINED = "declined"
+        const val PAYMENT_STATUS_REFUNDED = "refunded"
 
         /**
          * Generate unique transaction ID
@@ -28,7 +48,7 @@ data class Transaction(
         }
 
         /**
-         * Create new transaction
+         * Create new transaction (legacy - free vending)
          */
         fun create(coilId: String, status: String): Transaction {
             return Transaction(
@@ -37,6 +57,33 @@ data class Transaction(
                 status = status,
                 timestamp = System.currentTimeMillis() / 1000,
                 synced = false
+            )
+        }
+
+        /**
+         * Create new transaction with payment information
+         */
+        fun createWithPayment(
+            coilId: String,
+            status: String,
+            amount: Double,
+            paymentMethod: String,
+            paymentStatus: String,
+            nayaxTransactionId: String? = null,
+            productId: String? = null
+        ): Transaction {
+            return Transaction(
+                id = generateId(),
+                coilId = coilId,
+                status = status,
+                timestamp = System.currentTimeMillis() / 1000,
+                synced = false,
+                amount = amount,
+                paymentMethod = paymentMethod,
+                paymentStatus = paymentStatus,
+                currency = "USD",
+                nayaxTransactionId = nayaxTransactionId,
+                productId = productId
             )
         }
     }
