@@ -103,7 +103,7 @@ function updateStatusDisplay() {
  */
 function showStaleDataBanner(staleness) {
   const banner = document.getElementById('stale-data-banner');
-  const textElement = document.getElementById('stale-data-text');
+  const timeElement = document.getElementById('stale-data-time');
 
   if (!banner) {
     return;
@@ -111,12 +111,21 @@ function showStaleDataBanner(staleness) {
 
   banner.classList.remove('hidden');
 
-  if (textElement && staleness) {
+  if (timeElement && staleness) {
     const lastSync = staleness.lastSuccessfulFetch
       ? formatTimeAgo(staleness.lastSuccessfulFetch)
       : 'unknown time';
 
-    textElement.textContent = `Data may be out of date. Last synced: ${lastSync} (${staleness.ageMinutes} minute${staleness.ageMinutes !== 1 ? 's' : ''} ago)`;
+    timeElement.textContent = lastSync;
+  }
+
+  // Add dismiss button handler (only once)
+  const dismissBtn = document.getElementById('dismiss-stale-banner');
+  if (dismissBtn && !dismissBtn.hasAttribute('data-handler-attached')) {
+    dismissBtn.setAttribute('data-handler-attached', 'true');
+    dismissBtn.addEventListener('click', () => {
+      banner.classList.add('hidden');
+    });
   }
 }
 

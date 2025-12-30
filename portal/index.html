@@ -98,6 +98,22 @@
         </div>
       </header>
 
+      <!-- Stale Data Warning Banner -->
+      <div id="stale-data-banner" class="hidden bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-6 py-3">
+        <div class="flex items-center justify-between max-w-[1400px] mx-auto">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[20px]">warning</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-medium text-amber-900 dark:text-amber-100">Viewing Offline Data</span>
+              <span class="text-xs text-amber-700 dark:text-amber-300" id="stale-data-message">Machine is offline. Showing cached data from <span id="stale-data-time"></span></span>
+            </div>
+          </div>
+          <button id="dismiss-stale-banner" class="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-background-light dark:bg-background-dark">
         <div class="max-w-[1400px] mx-auto flex flex-col gap-6">

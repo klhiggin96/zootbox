@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -38,16 +39,16 @@ func (s *RecoveryService) ValidateDataIntegrity() (*DataIntegrityReport, error) 
 		ValidationErrors: []string{},
 	}
 
-	// Check 1: Verify exactly 100 coils exist (A1-J10)
+	// Check 1: Verify exactly 10 coils exist (A1-J1)
 	var coilCount int
 	if err := s.db.QueryRow("SELECT COUNT(*) FROM coils").Scan(&coilCount); err != nil {
 		return nil, fmt.Errorf("failed to count coils: %w", err)
 	}
 	report.TotalCoils = coilCount
 
-	if coilCount != 100 {
+	if coilCount != 10 {
 		report.IsValid = false
-		report.ValidationErrors = append(report.ValidationErrors, fmt.Sprintf("Expected 100 coils, found %d", coilCount))
+		report.ValidationErrors = append(report.ValidationErrors, fmt.Sprintf("Expected 10 coils, found %d", coilCount))
 	}
 
 	// Check 2: Verify all coils have valid inventory (0-10)
@@ -113,14 +114,48 @@ func (s *RecoveryService) ValidateDataIntegrity() (*DataIntegrityReport, error) 
 	}
 
 	// Check 5: Verify all product links reference valid coils
-	// This is complex because linked_coil_ids is a JSON array stored as text
-	// For MVP, we'll skip detailed validation of JSON integrity
-	// In production, we'd parse each JSON array and verify each coil_id exists
-
-	// Count product links
-	if err := s.db.QueryRow("SELECT COUNT(*) FROM product_links").Scan(&report.ProductLinks); err != nil {
-		return nil, fmt.Errorf("failed to count product links: %w", err)
+	// Parse linked_coil_ids JSON arrays and validate each coil_id exists
+	rows, err := s.db.Query("SELECT link_group_id, linked_coil_ids FROM product_links")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query product links: %w", err)
 	}
+	defer rows.Close()
+
+	productLinkCount := 0
+	for rows.Next() {
+		var linkGroupID, linkedCoilIDsJSON string
+		if err := rows.Scan(&linkGroupID, &linkedCoilIDsJSON); err != nil {
+			return nil, fmt.Errorf("failed to scan product link: %w", err)
+		}
+		productLinkCount++
+
+		// Parse JSON array of coil IDs
+		var coilIDs []string
+		if err := json.Unmarshal([]byte(linkedCoilIDsJSON), &coilIDs); err != nil {
+			report.IsValid = false
+			report.ValidationErrors = append(report.ValidationErrors,
+				fmt.Sprintf("Product link %s has invalid JSON: %v", linkGroupID, err))
+			continue
+		}
+
+		// Verify each coil_id exists
+		for _, coilID := range coilIDs {
+			var exists int
+			err := s.db.QueryRow("SELECT COUNT(*) FROM coils WHERE id = ?", coilID).Scan(&exists)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check coil existence: %w", err)
+			}
+			if exists == 0 {
+				report.IsValid = false
+				report.ValidationErrors = append(report.ValidationErrors,
+					fmt.Sprintf("Product link %s references non-existent coil %s", linkGroupID, coilID))
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating product links: %w", err)
+	}
+	report.ProductLinks = productLinkCount
 
 	// Check 6: Verify database schema integrity (WAL mode)
 	var journalMode string

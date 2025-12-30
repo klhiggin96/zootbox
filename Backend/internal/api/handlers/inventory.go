@@ -24,7 +24,7 @@ func NewInventoryHandler(db *sql.DB) *InventoryHandler {
 	}
 }
 
-// GetAllCoils returns all 100 coils with current inventory
+// GetAllCoils returns all 10 coils with current inventory
 func (h *InventoryHandler) GetAllCoils(w http.ResponseWriter, r *http.Request) {
 	coils, err := h.inventoryService.GetAllCoils()
 	if err != nil {

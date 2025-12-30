@@ -48,23 +48,16 @@ func (s *JamService) ResolveJamEvent(eventID string) (*models.JamEvent, error) {
 		return nil, fmt.Errorf("failed to resolve jam event: %w", err)
 	}
 
-	// Fetch all jam events to find the resolved one
-	// Note: This is inefficient but works for MVP. In production, add GetByID to repository
-	allEvents, err := s.jamEventRepo.GetAll()
+	// Fetch the resolved event
+	event, err := s.jamEventRepo.GetByID(eventID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch resolved jam event: %w", err)
 	}
 
-	// Find the resolved event
-	for _, event := range allEvents {
-		if event.ID == eventID {
-			log.Info().
-				Str("jam_event_id", eventID).
-				Str("coil_id", event.CoilID).
-				Msg("Jam event resolved successfully")
-			return event, nil
-		}
-	}
+	log.Info().
+		Str("jam_event_id", eventID).
+		Str("coil_id", event.CoilID).
+		Msg("Jam event resolved successfully")
 
-	return nil, fmt.Errorf("jam event %s not found after resolution", eventID)
+	return event, nil
 }

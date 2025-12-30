@@ -27,7 +27,7 @@ func NewAdminHandler(db *sql.DB) *AdminHandler {
 	}
 }
 
-// RefillAll sets all 100 coils to inventory=10
+// RefillAll sets all 10 coils to inventory=10
 func (h *AdminHandler) RefillAll(w http.ResponseWriter, r *http.Request) {
 	response, err := h.adminService.RefillAll()
 	if err != nil {
@@ -76,7 +76,7 @@ func (h *AdminHandler) UpdateCoilInventory(w http.ResponseWriter, r *http.Reques
 		errMsg := err.Error()
 		if errMsg == "coil "+coilID+" not found" {
 			statusCode = http.StatusNotFound
-		} else if len(errMsg) >= 9 && errMsg[:9] == "inventory" {
+		} else if strings.HasPrefix(errMsg, "inventory") {
 			statusCode = http.StatusBadRequest
 		}
 

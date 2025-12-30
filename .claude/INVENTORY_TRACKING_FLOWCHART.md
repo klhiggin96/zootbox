@@ -1171,6 +1171,309 @@ DATA INTEGRITY GUARANTEES
 
 ---
 
+## Backend Flow Diagrams (Mermaid)
+
+### Backend Startup & Data Integrity Validation
+
+```mermaid
+flowchart TD
+    Start([Backend Startup]) --> LoadConfig[Load Configuration<br/>DB Path, HTTP Host/Port]
+    LoadConfig --> ConnectDB{Connect to<br/>SQLite Database}
+
+    ConnectDB -->|Success| CheckMigrations[Check Migrations Table]
+    ConnectDB -->|Error| LogDBError[Log: Database Connection Failed] --> Exit1([Exit Code 1])
+
+    CheckMigrations --> RunMigrations{Run Migrations<br/>--migrate flag?}
+    RunMigrations -->|Yes| ExecuteMigrations[Execute SQL Migrations<br/>001_init_schema.sql<br/>002_seed_coils.sql]
+    RunMigrations -->|No| StartValidation[Start Data Integrity<br/>Validation]
+
+    ExecuteMigrations -->|Success| LogMigrationSuccess[Log: Migrations Complete] --> Exit0([Exit Code 0])
+    ExecuteMigrations -->|Error| LogMigrationError[Log: Migration Failed] --> Exit1
+
+    StartValidation --> Check1{Check 1:<br/>Exactly 10 Coils?}
+    Check1 -->|✅ Yes| Check2{Check 2:<br/>Valid Inventory<br/>0-10?}
+    Check1 -->|❌ No| AddError1[Add Error:<br/>Expected 10 coils, found X]
+
+    AddError1 --> Check2
+    Check2 -->|✅ Yes| Check3{Check 3:<br/>No Orphaned<br/>Transactions?}
+    Check2 -->|❌ No| AddError2[Add Error:<br/>Invalid inventory bounds]
+
+    AddError2 --> Check3
+    Check3 -->|✅ Yes| Check4{Check 4:<br/>No Orphaned<br/>Jam Events?}
+    Check3 -->|❌ No| AddError3[Add Error:<br/>Orphaned transactions found]
+
+    AddError3 --> Check4
+    Check4 -->|✅ Yes| Check5{Check 5:<br/>Valid Product<br/>Link Refs?}
+    Check4 -->|❌ No| AddError4[Add Error:<br/>Orphaned jam events found]
+
+    AddError4 --> Check5
+    Check5 -->|✅ Yes| Check6{Check 6:<br/>WAL Journal<br/>Mode?}
+    Check5 -->|❌ No| AddError5[Add Error:<br/>Invalid product link coil refs]
+
+    AddError5 --> Check6
+    Check6 -->|✅ Yes| ValidationPass[Log: Data Integrity<br/>Validation PASSED]
+    Check6 -->|❌ No| AddError6[Add Error:<br/>Expected WAL mode]
+
+    AddError6 --> ValidationFail{Any Errors<br/>Found?}
+    ValidationPass --> StartServer[Start HTTP Server<br/>Chi Router, Port 8080]
+
+    ValidationFail -->|Yes| LogCorruption[Log: Database Corruption<br/>Detected] --> Exit1
+    ValidationFail -->|No| StartServer
+
+    StartServer --> ListenSignals[Listen for Signals<br/>SIGINT, SIGTERM]
+    ListenSignals --> Running([Backend Running<br/>Ready for Requests])
+
+    style Check1 fill:#e1f5ff
+    style Check2 fill:#e1f5ff
+    style Check3 fill:#e1f5ff
+    style Check4 fill:#e1f5ff
+    style Check5 fill:#e1f5ff
+    style Check6 fill:#e1f5ff
+    style AddError1 fill:#ffe1e1
+    style AddError2 fill:#ffe1e1
+    style AddError3 fill:#ffe1e1
+    style AddError4 fill:#ffe1e1
+    style AddError5 fill:#ffe1e1
+    style AddError6 fill:#ffe1e1
+    style ValidationPass fill:#e1ffe1
+    style LogCorruption fill:#ffe1e1
+    style Running fill:#e1ffe1
+```
+
+### Sync Endpoint Processing with Error Handling
+
+```mermaid
+flowchart TD
+    Request([POST /api/v1/sync/inventory<br/>From Android App]) --> CORS{CORS Middleware<br/>Check Origin}
+
+    CORS -->|✅ localhost:*| ValidOrigin[Set CORS Headers]
+    CORS -->|❌ Evil.com| BlockOrigin[HTTP 403 Forbidden<br/>"Origin not allowed"] --> End403([End])
+
+    ValidOrigin --> ParseJSON{Parse JSON<br/>Request Body}
+    ParseJSON -->|✅ Valid JSON| ValidatePayload{Validate Payload<br/>has coils & txns}
+    ParseJSON -->|❌ Invalid JSON| Return400A[HTTP 400<br/>"Invalid request body"] --> End400A([End])
+
+    ValidatePayload -->|✅ Valid| BeginTx[BEGIN TRANSACTION]
+    ValidatePayload -->|❌ Missing fields| Return400B[HTTP 400<br/>"Missing required fields"] --> End400B([End])
+
+    BeginTx --> UpdateCoils[Loop: Update Coils<br/>for each coil in payload]
+    UpdateCoils --> UpdateCoil1{UPDATE coils<br/>SET inventory, status<br/>WHERE id = ?}
+
+    UpdateCoil1 -->|✅ Success| CheckRows1{Check Rows<br/>Affected}
+    UpdateCoil1 -->|❌ DB Error| Rollback1[ROLLBACK Transaction] --> Return500A[HTTP 500<br/>"Failed to update coil X"] --> End500A([End])
+
+    CheckRows1 -->|> 0| LogCoilUpdate[Log: Coil Updated<br/>Increment counter]
+    CheckRows1 -->|= 0| LogCoilSkip[Log: Coil not found<br/>silently skip]
+
+    LogCoilUpdate --> MoreCoils{More Coils<br/>to Update?}
+    LogCoilSkip --> MoreCoils
+
+    MoreCoils -->|Yes| UpdateCoil1
+    MoreCoils -->|No| InsertTxns[Loop: Insert Transactions<br/>for each txn in payload]
+
+    InsertTxns --> InsertTxn1{INSERT OR IGNORE<br/>INTO transactions<br/>VALUES ...}
+
+    InsertTxn1 -->|✅ Success| IncrementTxn[Increment Transaction<br/>Counter]
+    InsertTxn1 -->|❌ DB Error| Rollback2[ROLLBACK Transaction] --> Return500B[HTTP 500<br/>"Failed to insert txn X"] --> End500B([End])
+
+    IncrementTxn --> MoreTxns{More Txns<br/>to Insert?}
+    MoreTxns -->|Yes| InsertTxn1
+    MoreTxns -->|No| CommitTx{COMMIT Transaction}
+
+    CommitTx -->|✅ Success| BuildResponse[Build Success Response<br/>JSON with counters]
+    CommitTx -->|❌ Commit Error| LogCommitError[Log: Commit Failed] --> Return500C[HTTP 500<br/>"Database error"] --> End500C([End])
+
+    BuildResponse --> EncodeJSON{Encode JSON<br/>Response}
+    EncodeJSON -->|✅ Success| Return200[HTTP 200 OK<br/>success: true<br/>coils_updated: X<br/>transactions_added: Y] --> End200([End])
+    EncodeJSON -->|❌ Encoding Error| LogEncodingError[Log: Failed to<br/>encode response] --> Return200Empty[HTTP 200 OK<br/>Empty Response] --> End200Empty([End])
+
+    style CORS fill:#fff3cd
+    style BlockOrigin fill:#ffe1e1
+    style Return400A fill:#ffe1e1
+    style Return400B fill:#ffe1e1
+    style Return500A fill:#ffe1e1
+    style Return500B fill:#ffe1e1
+    style Return500C fill:#ffe1e1
+    style Rollback1 fill:#ffe1e1
+    style Rollback2 fill:#ffe1e1
+    style CommitTx fill:#e1f5ff
+    style Return200 fill:#e1ffe1
+```
+
+### Admin Refill Endpoint with Validation
+
+```mermaid
+flowchart TD
+    Request([POST /api/v1/admin/refill<br/>From Portal]) --> CORS{CORS Check<br/>Origin?}
+
+    CORS -->|✅ localhost:3000| AllowCORS[Set CORS Headers]
+    CORS -->|❌ Unauthorized| Block403[HTTP 403 Forbidden] --> End403([End])
+
+    AllowCORS --> ParseJSON{Parse JSON<br/>Body}
+    ParseJSON -->|✅ Valid| ValidateTarget{Validate<br/>target_inventory}
+    ParseJSON -->|❌ Invalid| Return400[HTTP 400<br/>"Invalid JSON"] --> End400([End])
+
+    ValidateTarget -->|✅ 0-10| BeginTx[BEGIN TRANSACTION]
+    ValidateTarget -->|❌ Out of bounds| Return400B[HTTP 400<br/>"Inventory must be 0-10"] --> End400B([End])
+
+    BeginTx --> UpdateAll{UPDATE coils<br/>SET inventory = ?<br/>version = version + 1}
+
+    UpdateAll -->|✅ Success| CheckRowsAffected{Check Rows<br/>Affected}
+    UpdateAll -->|❌ DB Error| Rollback1[ROLLBACK] --> Return500A[HTTP 500<br/>"Database error"] --> End500A([End])
+
+    CheckRowsAffected -->|> 0| CommitTx{COMMIT Transaction}
+    CheckRowsAffected -->|= 0| Rollback2[ROLLBACK] --> Return404[HTTP 404<br/>"No coils found"] --> End404([End])
+
+    CommitTx -->|✅ Success| BuildResponse[Build Response<br/>message: "All X coils refilled"<br/>coils_updated: X]
+    CommitTx -->|❌ Commit Error| LogCommitError[Log: Commit Failed] --> Return500B[HTTP 500<br/>"Commit failed"] --> End500B([End])
+
+    BuildResponse --> Return200[HTTP 200 OK<br/>JSON Response] --> End200([End])
+
+    style CORS fill:#fff3cd
+    style Block403 fill:#ffe1e1
+    style Return400 fill:#ffe1e1
+    style Return400B fill:#ffe1e1
+    style Return500A fill:#ffe1e1
+    style Return500B fill:#ffe1e1
+    style Rollback1 fill:#ffe1e1
+    style Rollback2 fill:#ffe1e1
+    style Return200 fill:#e1ffe1
+```
+
+### Power Loss Recovery Flow
+
+```mermaid
+flowchart TD
+    Start([Backend Crashed<br/>Power Loss]) --> Restart[System Reboots<br/>BootManager Starts Backend]
+
+    Restart --> ConnectDB[Connect to SQLite<br/>Database]
+    ConnectDB --> CheckWAL{WAL Files<br/>Exist?}
+
+    CheckWAL -->|Yes| AutoRecover[SQLite Auto-Recovery<br/>Replay WAL to main DB<br/>Discard uncommitted txns]
+    CheckWAL -->|No| SkipRecover[No Recovery Needed]
+
+    AutoRecover --> RunValidation[Run Data Integrity<br/>Validation]
+    SkipRecover --> RunValidation
+
+    RunValidation --> Check10Coils{Exactly<br/>10 Coils?}
+    Check10Coils -->|✅ Yes| CheckInventory{Valid<br/>Inventory?}
+    Check10Coils -->|❌ No| ValidationFail[Validation Failed<br/>Database Corruption]
+
+    CheckInventory -->|✅ Yes| CheckOrphans{No Orphaned<br/>Data?}
+    CheckInventory -->|❌ No| ValidationFail
+
+    CheckOrphans -->|✅ Yes| CheckWALMode{WAL Mode<br/>Enabled?}
+    CheckOrphans -->|❌ No| ValidationFail
+
+    CheckWALMode -->|✅ Yes| ValidationPass[Log: Data Integrity<br/>Validation PASSED<br/>Recovery Successful]
+    CheckWALMode -->|❌ No| ValidationFail
+
+    ValidationPass --> StartServer[Start HTTP Server<br/>Ready for Requests] --> Running([Backend Running])
+    ValidationFail --> LogError[Log: Database<br/>Corruption Detected<br/>List Errors] --> Exit1([Exit Code 1<br/>Manual Intervention Required])
+
+    style AutoRecover fill:#fff3cd
+    style ValidationPass fill:#e1ffe1
+    style ValidationFail fill:#ffe1e1
+    style LogError fill:#ffe1e1
+    style Running fill:#e1ffe1
+```
+
+### CORS Middleware Decision Tree
+
+```mermaid
+flowchart TD
+    Request([Incoming HTTP<br/>Request]) --> GetOrigin[Get Origin Header]
+
+    GetOrigin --> CheckOrigin{Origin Header<br/>Present?}
+
+    CheckOrigin -->|No| NoOrigin[No Origin Header<br/>Same-origin request] --> AllowRequest[Allow Request<br/>No CORS headers needed]
+    CheckOrigin -->|Yes| CheckLocalhost{Origin starts with<br/>http://localhost: ?}
+
+    CheckLocalhost -->|Yes| AllowLocalhost[Set CORS Headers:<br/>Allow-Origin: origin<br/>Allow-Methods: GET,POST,PUT,DELETE,OPTIONS<br/>Allow-Headers: Content-Type, X-Correlation-ID]
+    CheckLocalhost -->|No| CheckLocalhostNoPort{Origin exactly<br/>http://localhost ?}
+
+    CheckLocalhostNoPort -->|Yes| AllowLocalhost
+    CheckLocalhostNoPort -->|No| RejectOrigin[HTTP 403 Forbidden<br/>"Origin not allowed"]
+
+    AllowLocalhost --> CheckMethod{Request Method<br/>OPTIONS?}
+    CheckMethod -->|Yes| PreflightResponse[HTTP 204 No Content<br/>Set Max-Age: 86400<br/>Stop here]
+    CheckMethod -->|No| AllowRequest
+
+    AllowRequest --> NextHandler[Call Next Handler<br/>Process Request]
+
+    RejectOrigin --> End403([End 403])
+    PreflightResponse --> End204([End 204])
+    NextHandler --> ProcessRequest([Continue Request<br/>Processing])
+
+    style CheckOrigin fill:#fff3cd
+    style CheckLocalhost fill:#fff3cd
+    style CheckLocalhostNoPort fill:#fff3cd
+    style AllowLocalhost fill:#e1ffe1
+    style RejectOrigin fill:#ffe1e1
+    style AllowRequest fill:#e1ffe1
+    style PreflightResponse fill:#e1f5ff
+```
+
+### Transaction Rollback Scenarios
+
+```mermaid
+flowchart TD
+    SyncStart([Sync Request<br/>Received]) --> BeginTx[BEGIN TRANSACTION]
+
+    BeginTx --> UpdateCoil1[UPDATE coils<br/>SET inventory = 8<br/>WHERE id = A1]
+    UpdateCoil1 -->|✅ Success| UpdateCoil2[UPDATE coils<br/>SET inventory = 5<br/>WHERE id = B1]
+
+    UpdateCoil2 -->|✅ Success| InsertTxn1[INSERT INTO transactions<br/>txn_001, A1, success]
+    InsertTxn1 -->|✅ Success| InsertTxn2[INSERT INTO transactions<br/>txn_002, Z99, success]
+
+    InsertTxn2 -->|❌ Error:<br/>Invalid Coil Ref| DetectError{Error Detected}
+
+    DetectError --> Rollback[ROLLBACK Transaction<br/>Undo all changes]
+
+    Rollback --> UndoCoil1[A1 inventory:<br/>8 → 10<br/>ROLLED BACK]
+    UndoCoil1 --> UndoCoil2[B1 inventory:<br/>5 → 10<br/>ROLLED BACK]
+    UndoCoil2 --> UndoTxn1[txn_001:<br/>NOT INSERTED<br/>ROLLED BACK]
+
+    UndoTxn1 --> Return500[HTTP 500<br/>"Failed to insert txn_002:<br/>Invalid coil reference"]
+    Return500 --> End500([End - All Changes<br/>Reverted])
+
+    UpdateCoil1 -->|❌ Error| EarlyRollback[ROLLBACK<br/>No changes committed]
+    EarlyRollback --> Return500Early[HTTP 500<br/>"Failed to update coil"] --> End500Early([End])
+
+    style Rollback fill:#ffe1e1
+    style UndoCoil1 fill:#fff3cd
+    style UndoCoil2 fill:#fff3cd
+    style UndoTxn1 fill:#fff3cd
+    style Return500 fill:#ffe1e1
+    style DetectError fill:#ffe1e1
+```
+
+### Health Check Endpoint
+
+```mermaid
+flowchart TD
+    Request([GET /health]) --> QueryDB{Query Database<br/>SELECT 1}
+
+    QueryDB -->|✅ Success| CheckCoilCount{COUNT coils<br/>= 10?}
+    QueryDB -->|❌ Error| DBUnhealthy[Status: unhealthy<br/>database: unreachable]
+
+    CheckCoilCount -->|✅ Yes| AllHealthy[Status: healthy<br/>database: ok<br/>coils: 10<br/>timestamp: now]
+    CheckCoilCount -->|❌ No| CoilCountWrong[Status: degraded<br/>database: ok<br/>coils: X (expected 10)]
+
+    AllHealthy --> Return200[HTTP 200 OK<br/>JSON Response] --> End200([End])
+    CoilCountWrong --> Return503A[HTTP 503<br/>Service Degraded] --> End503A([End])
+    DBUnhealthy --> Return503B[HTTP 503<br/>Service Unavailable] --> End503B([End])
+
+    style AllHealthy fill:#e1ffe1
+    style CoilCountWrong fill:#fff3cd
+    style DBUnhealthy fill:#ffe1e1
+    style Return200 fill:#e1ffe1
+    style Return503A fill:#fff3cd
+    style Return503B fill:#ffe1e1
+```
+
+---
+
 ## Summary
 
 This flowchart demonstrates:
@@ -1202,4 +1505,13 @@ This flowchart demonstrates:
    - Portal shows stale data warnings
    - No data loss on power failures (WAL mode)
 
-The system ensures **eventual consistency** across all three layers while maintaining **Android as the authoritative source**.
+6. **Backend Error Handling** (NEW)
+   - CORS validation blocks unauthorized origins
+   - JSON parsing errors return 400 Bad Request
+   - Database errors trigger transaction rollback
+   - All-or-nothing atomicity for sync operations
+   - Power loss recovery via SQLite WAL mode
+   - Data integrity validation on every startup
+   - Health checks monitor system status
+
+The system ensures **eventual consistency** across all three layers while maintaining **Android as the authoritative source** and **guaranteeing data integrity** through comprehensive error handling.

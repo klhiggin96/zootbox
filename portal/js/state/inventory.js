@@ -6,6 +6,8 @@
  *   cacheInventory(machineId, coils);
  */
 
+import { warn } from '../utils/logger.js';
+
 // Session cache (in-memory, cleared on page refresh)
 const cache = {
   inventory: new Map(),      // machineId → coils array
@@ -251,7 +253,7 @@ export function invalidateCache(machineId, type) {
       cache.lastFetch.delete(`products-${machineId}`);
       break;
     default:
-      console.warn(`Unknown cache type: ${type}`);
+      warn(`Unknown cache type: ${type}`);
   }
 }
 

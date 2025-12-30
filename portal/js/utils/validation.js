@@ -6,6 +6,32 @@
  *   const result = validateInventory(15);
  */
 
+// ========== Security ==========
+
+/**
+ * Escape HTML to prevent XSS attacks
+ * Converts special characters to HTML entities
+ *
+ * @param {string} unsafe - Untrusted string that may contain HTML
+ * @returns {string} Safe HTML-escaped string
+ *
+ * Example:
+ *   escapeHtml('<script>alert("xss")</script>')
+ *   // Returns: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+ */
+export function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') {
+    return String(unsafe);
+  }
+
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // ========== Coil ID Validation ==========
 
 /**

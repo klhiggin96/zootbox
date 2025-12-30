@@ -12,6 +12,7 @@ import { cacheInventory, getCachedInventory } from '../state/inventory.js';
 import { showToast } from './Toast.js';
 import { showEditPanel } from './EditPanel.js';
 import { updateStatCards } from './StatCards.js';
+import { escapeHtml } from '../utils/validation.js';
 
 let currentCoils = [];
 let currentRows = [];
@@ -218,20 +219,20 @@ function renderRow(row) {
   const barHeight = Math.round((coil.inventory / 10) * 100);
 
   return `
-    <div data-row="${row.rowNumber}" class="grid grid-cols-[260px_1fr] h-28 group/row cursor-pointer hover:bg-slate-50 dark:hover:bg-[#0d1117]" data-coil-id="${coil.id}">
+    <div data-row="${escapeHtml(row.rowNumber)}" class="grid grid-cols-[260px_1fr] h-28 group/row cursor-pointer hover:bg-slate-50 dark:hover:bg-[#0d1117]" data-coil-id="${escapeHtml(coil.id)}">
       <!-- Left: Product Info -->
       <div class="relative flex flex-col justify-center p-4 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#1e2732] transition-colors">
         <div class="flex justify-between items-start mb-2">
-          <span class="text-xl font-bold text-slate-400 dark:text-slate-500">Row ${row.rowNumber}</span>
-          <span class="text-[10px] uppercase font-bold ${row.statusClass} px-1.5 py-0.5 rounded">${row.status}</span>
+          <span class="text-xl font-bold text-slate-400 dark:text-slate-500">Row ${escapeHtml(row.rowNumber)}</span>
+          <span class="text-[10px] uppercase font-bold ${row.statusClass} px-1.5 py-0.5 rounded">${escapeHtml(row.status)}</span>
         </div>
         <div class="flex items-center gap-3">
           <div class="h-10 w-10 shrink-0 flex items-center justify-center bg-slate-200 dark:bg-slate-700 rounded">
-            <span class="material-symbols-outlined text-slate-600 dark:text-slate-400">${row.product.icon}</span>
+            <span class="material-symbols-outlined text-slate-600 dark:text-slate-400">${escapeHtml(row.product.icon)}</span>
           </div>
           <div class="flex flex-col min-w-0">
-            <span class="font-bold text-sm text-slate-900 dark:text-white truncate">${row.product.name}</span>
-            <span class="text-xs text-slate-500">Coil: <span class="font-semibold">${coil.id}</span> • Stock: <span class="font-semibold text-primary">${row.totalStock}/${row.maxStock}</span></span>
+            <span class="font-bold text-sm text-slate-900 dark:text-white truncate">${escapeHtml(row.product.name)}</span>
+            <span class="text-xs text-slate-500">Coil: <span class="font-semibold">${escapeHtml(coil.id)}</span> • Stock: <span class="font-semibold text-primary">${row.totalStock}/${row.maxStock}</span></span>
           </div>
         </div>
         <div class="w-full bg-slate-200 dark:bg-slate-700 h-1 rounded-full overflow-hidden mt-3">
@@ -244,7 +245,7 @@ function renderRow(row) {
         <!-- Horizontal bar showing 0-10 units -->
         <div class="w-full max-w-md">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-slate-400">${coil.id}</span>
+            <span class="text-xs font-bold text-slate-400">${escapeHtml(coil.id)}</span>
             <span class="text-sm font-bold ${coil.inventory === 0 ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}">${coil.inventory} / 10</span>
           </div>
           <div class="w-full bg-slate-100 dark:bg-slate-700/50 rounded-full h-8 relative overflow-hidden">

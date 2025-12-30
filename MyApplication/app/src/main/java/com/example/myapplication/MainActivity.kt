@@ -6,6 +6,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -43,6 +44,12 @@ class MainActivity : AppCompatActivity() {
     private val colorSchemes = ColorSchemes.getAll()
     private var currentSchemeIndex = 0
 
+    // Admin panel access via top-left corner taps
+    private var topLeftTapCount = 0
+    private var lastTapTime = 0L
+    private val TAP_TIMEOUT = 2000L // 2 seconds between taps
+    private val REQUIRED_TAPS = 5
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -70,37 +77,25 @@ class MainActivity : AppCompatActivity() {
         // Apply initial color scheme
         applyColorScheme(colorSchemes[currentSchemeIndex])
 
-        // Setup Color Scheme Toggle
+        // Setup Color Scheme Toggle (orb is ONLY for color schemes)
         darkModeToggle.setOnClickListener {
             cycleColorScheme()
         }
 
-        // Setup Admin Access (long-press on orb icon)
-        orbIcon.setOnLongClickListener {
-            // Haptic feedback
-            @Suppress("DEPRECATION")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val vibrator = getSystemService(android.os.VibrationEffect::class.java) as? android.os.Vibrator
-                vibrator?.vibrate(android.os.VibrationEffect.createOneShot(50, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
-                vibrator?.vibrate(50)
-            }
-
-            // Show toast
-            Toast.makeText(this, "Admin Mode", Toast.LENGTH_SHORT).show()
-
-            // Launch admin panel
-            val intent = Intent(this, AdminPanelActivity::class.java)
-            startActivity(intent)
-            true
-        }
+        // Setup Admin Access (5 taps in top-left corner)
+        setupAdminAccess()
 
         // Setup Navigation Buttons
         findViewById<Button>(R.id.btn_s1).setOnClickListener { openCategory("ZyNS") }
         findViewById<Button>(R.id.btn_s2).setOnClickListener { openCategory("VAPES") }
         findViewById<Button>(R.id.btn_s3).setOnClickListener { openCategory("CIGERATES") }
         findViewById<Button>(R.id.btn_s4).setOnClickListener { openCategory("ZOOTBOX LEGENDARY LOOT") }
+
+        // TEMPORARY: USB Diagnostic launcher (long-press the orb)
+        darkModeToggle.setOnLongClickListener {
+            startActivity(Intent(this, UsbDiagnosticActivity::class.java))
+            true
+        }
 
         // Start hardware service
         try {
@@ -124,6 +119,12 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to schedule inventory sync: ${e.message}")
         }
+
+        // NOTE: Lock task mode disabled - it was interfering with Tailscale startup
+        // If needed for production kiosk mode, enable via ADB command:
+        // adb shell "settings put global lock_task_packages com.example.myapplication"
+        // adb shell "am start -n com.example.myapplication/.MainActivity"
+        // Then call startLockTask() manually
 
         Toast.makeText(this, "USB Connection Active", Toast.LENGTH_LONG).show()
 
@@ -189,11 +190,14 @@ class MainActivity : AppCompatActivity() {
         // Make the app edge-to-edge
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Hide the navigation bar and status bar
+        // KIOSK MODE: Hide and lock navigation bar and status bar
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let { controller ->
-                controller.hide(WindowInsets.Type.navigationBars())
-                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                // Hide both status bar and navigation bar
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                // IMPORTANT: Use SHOW_BARS_BY_SWIPE instead of SHOW_TRANSIENT_BARS_BY_SWIPE
+                // This prevents the status bar from being swiped down
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_BARS_BY_SWIPE
             }
         } else {
             @Suppress("DEPRECATION")
@@ -203,18 +207,103 @@ class MainActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY  // This prevents swipe-down
             )
         }
 
-        // Keep screen on
+        // Keep screen on (kiosk requirement)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Prevent screenshot/screen recording (optional kiosk security)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             setupFullScreen()
+        }
+    }
+
+    private fun enableAppPinning() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                // Start lock task mode (app pinning)
+                // This prevents users from exiting the app or accessing other apps
+                startLockTask()
+                Log.i("MainActivity", "App pinning enabled - kiosk mode active")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to enable app pinning", e)
+                // App will still run, just not in pinned mode
+            }
+        }
+    }
+
+    private fun setupAdminAccess() {
+        // Create an invisible view in the top-left corner for tap detection
+        rootLayout.setOnTouchListener { _, event ->
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                // Check if tap is in top-left corner (first 150x150 pixels)
+                if (event.x < 150 && event.y < 150) {
+                    handleAdminTap()
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+    }
+
+    private fun handleAdminTap() {
+        val currentTime = System.currentTimeMillis()
+
+        // Reset count if too much time has passed since last tap
+        if (currentTime - lastTapTime > TAP_TIMEOUT) {
+            topLeftTapCount = 1
+        } else {
+            topLeftTapCount++
+        }
+
+        lastTapTime = currentTime
+
+        // Provide feedback on each tap
+        when (topLeftTapCount) {
+            in 1..4 -> {
+                // Light haptic feedback
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val vibrator = getSystemService(android.os.VibrationEffect::class.java) as? android.os.Vibrator
+                    vibrator?.vibrate(android.os.VibrationEffect.createOneShot(30, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    vibrator?.vibrate(30)
+                }
+                // Show progress
+                Toast.makeText(this, "Tap ${REQUIRED_TAPS - topLeftTapCount} more times", Toast.LENGTH_SHORT).show()
+            }
+            REQUIRED_TAPS -> {
+                // Strong haptic feedback
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val vibrator = getSystemService(android.os.VibrationEffect::class.java) as? android.os.Vibrator
+                    vibrator?.vibrate(android.os.VibrationEffect.createOneShot(100, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    val vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    vibrator?.vibrate(100)
+                }
+
+                // Show admin mode toast
+                Toast.makeText(this, "Admin Mode Activated", Toast.LENGTH_SHORT).show()
+
+                // Launch admin panel
+                val intent = Intent(this, AdminPanelActivity::class.java)
+                startActivity(intent)
+
+                // Reset counter
+                topLeftTapCount = 0
+            }
         }
     }
 }

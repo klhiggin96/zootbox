@@ -6,8 +6,10 @@
  *   const data = await apiClient.get('/health');
  */
 
+import { API } from '../config.js';
+
 class APIClient {
-  constructor(baseURL = 'http://localhost:8080', defaultTimeout = 10000) {
+  constructor(baseURL = API.DEFAULT_BACKEND_URL, defaultTimeout = API.DEFAULT_TIMEOUT) {
     this.baseURL = baseURL;
     this.defaultTimeout = defaultTimeout;
     this.activeRequests = new Map(); // Track active requests for cancellation
@@ -153,10 +155,10 @@ class APIClient {
   /**
    * Health check with retry logic
    */
-  async healthCheck(retries = 3) {
+  async healthCheck(retries = API.MAX_HEALTH_CHECK_RETRIES) {
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await this.get('/health', { timeout: 5000 });
+        const response = await this.get('/health', { timeout: API.HEALTH_CHECK_TIMEOUT });
         return {
           status: 'online',
           data: response
@@ -169,7 +171,7 @@ class APIClient {
           };
         }
         // Wait before retry (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        await new Promise(resolve => setTimeout(resolve, API.RETRY_DELAY_MS * (i + 1)));
       }
     }
   }

@@ -1,12 +1,16 @@
 package com.example.myapplication
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -21,9 +25,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.cart.CartManager
 import com.example.myapplication.database.InventoryRepository
 import com.example.myapplication.database.models.Coil
+import com.example.myapplication.database.models.Product
 import com.example.myapplication.database.models.Transaction
+import com.example.myapplication.hardware.HardwareService
+import com.example.myapplication.hardware.MotorControlManager
+import com.example.myapplication.hardware.NayaxPaymentManager
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
@@ -52,7 +63,27 @@ class ProductDetailActivity : AppCompatActivity() {
 
     // Inventory
     private lateinit var inventoryRepo: InventoryRepository
+    private lateinit var cartManager: CartManager
     private var assignedCoil: Coil? = null
+
+    // Hardware Service
+    private var hardwareService: HardwareService? = null
+    private var serviceBound = false
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as? HardwareService.LocalBinder
+            hardwareService = binder?.getService()
+            serviceBound = true
+            Log.d("ProductDetailActivity", "HardwareService connected")
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            hardwareService = null
+            serviceBound = false
+            Log.d("ProductDetailActivity", "HardwareService disconnected")
+        }
+    }
 
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
 
@@ -68,8 +99,9 @@ class ProductDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_detail)
 
-        // Initialize inventory repository
+        // Initialize inventory repository and cart manager
         inventoryRepo = InventoryRepository.getInstance(this)
+        cartManager = CartApplication.getInstance().cartManager
 
         // Get Intent data
         productName = intent.getStringExtra("name") ?: ""
@@ -126,6 +158,14 @@ class ProductDetailActivity : AppCompatActivity() {
         if (videoFileName != null) {
             checkAndRequestPermissions()
         }
+
+        // Bind to HardwareService
+        bindToHardwareService()
+    }
+
+    private fun bindToHardwareService() {
+        val intent = Intent(this, HardwareService::class.java)
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
     
     private fun initializeViews() {
@@ -208,43 +248,13 @@ class ProductDetailActivity : AppCompatActivity() {
         
         val addToCartBtn = findViewById<Button>(R.id.btn_add_to_cart)
         addToCartBtn.setOnClickListener {
-            // Check inventory before proceeding
-            val coil = assignedCoil
-            if (coil == null) {
-                Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            handleAddToCart()
+        }
 
-            if (coil.inventory == 0) {
-                Toast.makeText(this, "This item is currently out of stock", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (coil.isJammed()) {
-                Toast.makeText(this, "This item is temporarily unavailable (jammed)", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (coil.inventory < quantity) {
-                Toast.makeText(this, "Only ${coil.inventory} units available", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            Log.d("ProductDetailActivity", "Buy Now Clicked. Age Restriction: $ageRestriction")
-
-            // FORCE AGE CHECK FOR DEMO
-            val checkAge = if (ageRestriction > 0) ageRestriction else 21
-
-            if (checkAge > 0) {
-                Log.d("ProductDetailActivity", "Launching ID Scan")
-                // Launch ID Verification
-                val intent = Intent(this, IdScanActivity::class.java)
-                intent.putExtra("requiredAge", checkAge)
-                idScanLauncher.launch(intent)
-            } else {
-                Log.d("ProductDetailActivity", "Proceeding to Cart (No Restriction)")
-                processCheckout()
-            }
+        // Optional: Add long-click for "Buy Now" immediate checkout
+        addToCartBtn.setOnLongClickListener {
+            handleBuyNow()
+            true
         }
     }
     
@@ -372,6 +382,15 @@ class ProductDetailActivity : AppCompatActivity() {
         checkInventoryAndUpdateUI()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Unbind from HardwareService
+        if (serviceBound) {
+            unbindService(serviceConnection)
+            serviceBound = false
+        }
+    }
+
     /**
      * Determine which coil this product uses
      * TODO: Replace with actual product-to-coil mapping from database
@@ -421,45 +440,360 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     /**
+     * Handle "Add to Cart" button click
+     *
+     * Adds product to cart and shows options to continue shopping or view cart
+     */
+    private fun handleAddToCart() {
+        // Check inventory before proceeding
+        val coil = assignedCoil
+        if (coil == null) {
+            Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.inventory == 0) {
+            Toast.makeText(this, "This item is currently out of stock", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.isJammed()) {
+            Toast.makeText(this, "This item is temporarily unavailable (jammed)", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.inventory < quantity) {
+            Toast.makeText(this, "Only ${coil.inventory} units available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Create product from current data
+        val product = Product(
+            id = "PRD_TEMP_${productName.hashCode()}",  // TODO: Use real product ID from database
+            name = productName,
+            category = intent.getStringExtra("category") ?: "Unknown",
+            price = basePrice,
+            ageRestriction = ageRestriction,
+            imageUrl = null,
+            videoFilename = videoFileName,
+            isDigital = false,
+            active = true
+        )
+
+        // Add to cart
+        val result = cartManager.addItem(product, quantity)
+
+        if (result.isSuccess) {
+            Toast.makeText(
+                this,
+                "Added ${quantity}x ${productName} to cart!",
+                Toast.LENGTH_LONG
+            ).show()
+
+            // Show option to view cart
+            val cartSummary = cartManager.getSummary()
+            Toast.makeText(
+                this,
+                "Cart: $cartSummary - Tap to view",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            // Optional: Navigate to cart or finish activity
+            // CartActivity.start(this)
+            // finish()
+        } else {
+            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to add to cart"
+            Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Handle "Buy Now" button (long-click)
+     *
+     * Immediate checkout without adding to cart
+     */
+    private fun handleBuyNow() {
+        // Check inventory before proceeding
+        val coil = assignedCoil
+        if (coil == null) {
+            Toast.makeText(this, "Product not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.inventory == 0) {
+            Toast.makeText(this, "This item is currently out of stock", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.isJammed()) {
+            Toast.makeText(this, "This item is temporarily unavailable (jammed)", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (coil.inventory < quantity) {
+            Toast.makeText(this, "Only ${coil.inventory} units available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Log.d("ProductDetailActivity", "Buy Now Clicked. Age Restriction: $ageRestriction")
+
+        // FORCE AGE CHECK FOR DEMO
+        val checkAge = if (ageRestriction > 0) ageRestriction else 21
+
+        if (checkAge > 0) {
+            Log.d("ProductDetailActivity", "Launching ID Scan")
+            // Launch ID Verification
+            val intent = Intent(this, IdScanActivity::class.java)
+            intent.putExtra("requiredAge", checkAge)
+            idScanLauncher.launch(intent)
+        } else {
+            Log.d("ProductDetailActivity", "Proceeding to Checkout (No Restriction)")
+            processCheckout()
+        }
+    }
+
+    /**
      * Process checkout after age verification (if required)
+     *
+     * Payment Flow:
+     * 1. Initiate payment with Nayax VPOS Touch
+     * 2. Wait for card tap (max 120 seconds)
+     * 3. If approved:
+     *    - Trigger motor vend for each quantity
+     *    - Log transactions with payment data
+     *    - Confirm vend to Nayax (or trigger refund if jam)
+     * 4. If declined/cancelled: Show error message
      */
     private fun processCheckout() {
         val coil = assignedCoil ?: return
 
         val totalPrice = basePrice * quantity
-        Log.d("ProductDetailActivity", "Processing checkout: $quantity units from coil ${coil.id}")
+        Log.d("ProductDetailActivity", "Processing checkout: $quantity units from coil ${coil.id}, total: ${currencyFormatter.format(totalPrice)}")
 
-        // Decrement inventory
-        var vendSuccess = true
-        repeat(quantity) {
-            if (!inventoryRepo.decrementInventory(coil.id)) {
-                vendSuccess = false
-            }
+        // Get hardware managers
+        val paymentManager = hardwareService?.getNayaxPaymentManager()
+        val motorManager = hardwareService?.getMotorControlManager()
+
+        // Check if payment hardware is available
+        if (paymentManager == null) {
+            Log.w("ProductDetailActivity", "Payment manager not available - using free vend mode")
+            processFreeVend(coil)
+            return
         }
 
-        if (vendSuccess) {
-            // Log transaction(s)
-            repeat(quantity) {
-                val transactionId = inventoryRepo.logTransaction(coil.id, Transaction.STATUS_SUCCESS)
-                Log.d("ProductDetailActivity", "Logged transaction: $transactionId")
+        // Check if motor control is available
+        if (motorManager == null) {
+            Log.e("ProductDetailActivity", "Motor control manager not available")
+            Toast.makeText(this, "Vending system unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Disable button during payment
+        btnAddToCart.isEnabled = false
+        btnAddToCart.text = "PROCESSING PAYMENT..."
+
+        // Launch payment flow in coroutine
+        lifecycleScope.launch {
+            try {
+                Log.i("ProductDetailActivity", "Initiating payment: ${currencyFormatter.format(totalPrice)}")
+                Toast.makeText(
+                    this@ProductDetailActivity,
+                    "Present Card - ${currencyFormatter.format(totalPrice)}",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                // Initiate payment (blocks until card tap or timeout)
+                val paymentApproved = paymentManager.initiatePayment(totalPrice, itemNumber = quantity)
+
+                if (paymentApproved) {
+                    Log.i("ProductDetailActivity", "Payment APPROVED")
+
+                    // Get Nayax transaction ID from payment result
+                    val paymentResult = paymentManager.paymentResult.value
+                    val nayaxTransactionId = paymentResult?.transactionId
+
+                    // Process vend for each quantity
+                    Toast.makeText(
+                        this@ProductDetailActivity,
+                        "Payment approved! Dispensing product...",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    var allVendsSuccessful = true
+                    repeat(quantity) { index ->
+                        Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantity from coil ${coil.id}")
+
+                        val vendSuccess = motorManager.vendMotor(coil.id)
+
+                        if (vendSuccess) {
+                            // Decrement inventory
+                            inventoryRepo.decrementInventory(coil.id)
+
+                            // Log transaction with payment data
+                            val transaction = Transaction.createWithPayment(
+                                coilId = coil.id,
+                                status = Transaction.STATUS_SUCCESS,
+                                amount = basePrice,
+                                paymentMethod = Transaction.PAYMENT_METHOD_CARD,
+                                paymentStatus = Transaction.PAYMENT_STATUS_APPROVED,
+                                nayaxTransactionId = nayaxTransactionId,
+                                productId = null  // TODO: Get from product-coil mapping
+                            )
+                            inventoryRepo.logTransaction(transaction)
+                            Log.d("ProductDetailActivity", "Logged transaction: ${transaction.id}")
+                        } else {
+                            // Vend failed (motor jam)
+                            Log.e("ProductDetailActivity", "Motor vend FAILED for coil ${coil.id}")
+                            allVendsSuccessful = false
+
+                            // Log JAM transaction
+                            val jamTransaction = Transaction.createWithPayment(
+                                coilId = coil.id,
+                                status = Transaction.STATUS_JAM,
+                                amount = basePrice,
+                                paymentMethod = Transaction.PAYMENT_METHOD_CARD,
+                                paymentStatus = Transaction.PAYMENT_STATUS_REFUNDED,
+                                nayaxTransactionId = nayaxTransactionId,
+                                productId = null
+                            )
+                            inventoryRepo.logTransaction(jamTransaction)
+
+                            // Create jam event for backend alerting
+                            // inventoryRepo.createJamEvent(coil.id)
+
+                            break  // Stop vending on first failure
+                        }
+                    }
+
+                    if (allVendsSuccessful) {
+                        // Confirm successful vend to Nayax (finalizes transaction)
+                        paymentManager.confirmVend(success = true)
+
+                        Toast.makeText(
+                            this@ProductDetailActivity,
+                            "Purchase successful! Thank you!",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        Log.i("ProductDetailActivity", "Checkout completed successfully")
+                    } else {
+                        // Partial failure - trigger refund
+                        paymentManager.confirmVend(success = false)
+
+                        Toast.makeText(
+                            this@ProductDetailActivity,
+                            "Vend failed. Payment will be refunded.",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        Log.w("ProductDetailActivity", "Checkout failed - payment refunded")
+                    }
+                } else {
+                    // Payment declined or cancelled
+                    Log.w("ProductDetailActivity", "Payment DECLINED or CANCELLED")
+                    val paymentResult = paymentManager.paymentResult.value
+                    val errorMessage = paymentResult?.error ?: "Payment declined"
+
+                    Toast.makeText(
+                        this@ProductDetailActivity,
+                        "Payment failed: $errorMessage",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Log.e("ProductDetailActivity", "Checkout error", e)
+                Toast.makeText(
+                    this@ProductDetailActivity,
+                    "Checkout error: ${e.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                // Re-enable button
+                btnAddToCart.isEnabled = true
+                updateQuantityDisplay()
+
+                // Refresh inventory
+                checkInventoryAndUpdateUI()
             }
+        }
+    }
 
-            // Show success message
-            Toast.makeText(
-                this,
-                "Purchase successful! Total: ${currencyFormatter.format(totalPrice)}",
-                Toast.LENGTH_SHORT
-            ).show()
+    /**
+     * Process free vend (no payment required)
+     * Used when payment hardware is unavailable or for testing
+     */
+    private fun processFreeVend(coil: Coil) {
+        val totalPrice = basePrice * quantity
+        Log.d("ProductDetailActivity", "Processing FREE vend: $quantity units from coil ${coil.id}")
 
-            // TODO: Trigger actual vend command via HardwareService here
-            // For now, just simulate success
+        val motorManager = hardwareService?.getMotorControlManager()
+        if (motorManager == null) {
+            Log.e("ProductDetailActivity", "Motor control manager not available")
+            Toast.makeText(this, "Vending system unavailable", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-            // Refresh inventory display
-            checkInventoryAndUpdateUI()
-        } else {
-            // Failed to decrement (inventory mismatch)
-            Toast.makeText(this, "Purchase failed: Insufficient inventory", Toast.LENGTH_SHORT).show()
-            checkInventoryAndUpdateUI()
+        btnAddToCart.isEnabled = false
+        btnAddToCart.text = "DISPENSING..."
+
+        lifecycleScope.launch {
+            try {
+                var allVendsSuccessful = true
+                repeat(quantity) { index ->
+                    Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantity from coil ${coil.id}")
+
+                    val vendSuccess = motorManager.vendMotor(coil.id)
+
+                    if (vendSuccess) {
+                        inventoryRepo.decrementInventory(coil.id)
+
+                        val transaction = Transaction.createWithPayment(
+                            coilId = coil.id,
+                            status = Transaction.STATUS_SUCCESS,
+                            amount = 0.0,  // Free vend
+                            paymentMethod = Transaction.PAYMENT_METHOD_FREE,
+                            paymentStatus = Transaction.PAYMENT_STATUS_APPROVED,
+                            nayaxTransactionId = null,
+                            productId = null
+                        )
+                        inventoryRepo.logTransaction(transaction)
+                    } else {
+                        allVendsSuccessful = false
+                        val jamTransaction = Transaction.createWithPayment(
+                            coilId = coil.id,
+                            status = Transaction.STATUS_JAM,
+                            amount = 0.0,
+                            paymentMethod = Transaction.PAYMENT_METHOD_FREE,
+                            paymentStatus = Transaction.PAYMENT_STATUS_APPROVED,
+                            nayaxTransactionId = null,
+                            productId = null
+                        )
+                        inventoryRepo.logTransaction(jamTransaction)
+                        break
+                    }
+                }
+
+                if (allVendsSuccessful) {
+                    Toast.makeText(
+                        this@ProductDetailActivity,
+                        "Vend successful! (Free mode)",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this@ProductDetailActivity,
+                        "Vend failed (motor jam)",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                Log.e("ProductDetailActivity", "Free vend error", e)
+                Toast.makeText(this@ProductDetailActivity, "Vend error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                btnAddToCart.isEnabled = true
+                updateQuantityDisplay()
+                checkInventoryAndUpdateUI()
+            }
         }
     }
 }

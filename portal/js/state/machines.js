@@ -6,6 +6,8 @@
  *   const machines = getMachines();
  */
 
+import { log, error } from '../utils/logger.js';
+
 const STORAGE_KEYS = {
   MACHINES: 'zootbox.machines',
   UI_STATE: 'zootbox.uiState',
@@ -54,7 +56,7 @@ async function initializeAPIClient() {
   if (currentMachine && currentMachine.endpointUrl) {
     const { apiClient } = await import('../api/client.js');
     apiClient.setBaseURL(currentMachine.endpointUrl);
-    console.log(`API client initialized with ${currentMachine.endpointUrl}`);
+    log(`API client initialized with ${currentMachine.endpointUrl}`);
   }
 }
 
@@ -83,7 +85,7 @@ function migrateSchema(currentVersion) {
     return; // No migration needed
   }
 
-  console.log(`Migrating schema from ${currentVersion} to ${SCHEMA_VERSION}`);
+  log(`Migrating schema from ${currentVersion} to ${SCHEMA_VERSION}`);
 
   // Example migration: v1.0.0 → v1.1.0
   // if (currentVersion === '1.0.0') {
@@ -110,8 +112,8 @@ function getMetadata() {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.METADATA);
     return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Failed to parse metadata:', error);
+  } catch (err) {
+    error('Failed to parse metadata:', err);
     return null;
   }
 }
@@ -134,8 +136,8 @@ export function getMachines() {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.MACHINES);
     return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Failed to parse machines:', error);
+  } catch (err) {
+    error('Failed to parse machines:', err);
     return [];
   }
 }
@@ -271,8 +273,8 @@ export function getUIState() {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.UI_STATE);
     return data ? JSON.parse(data) : getDefaultUIState();
-  } catch (error) {
-    console.error('Failed to parse UI state:', error);
+  } catch (err) {
+    error('Failed to parse UI state:', err);
     return getDefaultUIState();
   }
 }
@@ -333,7 +335,7 @@ export function setCurrentMachine(machineId) {
     if (machine && machine.endpointUrl) {
       import('../api/client.js').then(({ apiClient }) => {
         apiClient.setBaseURL(machine.endpointUrl);
-        console.log(`API client updated to ${machine.endpointUrl}`);
+        log(`API client updated to ${machine.endpointUrl}`);
       });
     }
   }

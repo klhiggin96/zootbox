@@ -9,6 +9,7 @@
 import { updateCoilInventory } from '../api/admin.js';
 import { showToast } from './Toast.js';
 import { refreshGrid } from './CoilGrid.js';
+import { escapeHtml } from '../utils/validation.js';
 
 let currentCoil = null;
 
@@ -52,7 +53,7 @@ function renderEditPanel(panel, coil) {
     <div class="flex flex-col h-full">
       <!-- Header -->
       <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-[#1e2732]">
-        <h3 class="font-bold text-lg">Edit Slot ${coil.id}</h3>
+        <h3 class="font-bold text-lg">Edit Slot ${escapeHtml(coil.id)}</h3>
         <button id="close-edit-panel" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
           <span class="material-symbols-outlined">close</span>
         </button>
@@ -64,12 +65,12 @@ function renderEditPanel(panel, coil) {
         <div class="flex flex-col items-center gap-3">
           <div class="w-32 h-32 bg-slate-100 dark:bg-[#283039] rounded-xl flex items-center justify-center p-4">
             <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg h-full w-full flex items-center justify-center text-white font-bold text-2xl">
-              ${coil.id}
+              ${escapeHtml(coil.id)}
             </div>
           </div>
           <div class="text-center">
-            <h4 class="text-xl font-bold">Slot ${coil.id}</h4>
-            <p class="text-slate-500 text-sm">${statusText}</p>
+            <h4 class="text-xl font-bold">Slot ${escapeHtml(coil.id)}</h4>
+            <p class="text-slate-500 text-sm">${escapeHtml(statusText)}</p>
           </div>
         </div>
 
@@ -81,7 +82,7 @@ function renderEditPanel(panel, coil) {
           </div>
           <div class="bg-slate-50 dark:bg-[#1e2732] p-3 rounded-lg border border-slate-200 dark:border-slate-800 text-center">
             <span class="block text-xs text-slate-500 uppercase tracking-wide">Status</span>
-            <span class="block text-lg font-bold">${coil.status || 'N/A'}</span>
+            <span class="block text-lg font-bold">${escapeHtml(coil.status || 'N/A')}</span>
           </div>
         </div>
 
@@ -95,7 +96,7 @@ function renderEditPanel(panel, coil) {
               <button id="decrement-btn" class="size-10 flex items-center justify-center bg-slate-100 dark:bg-[#283039] rounded-lg text-lg hover:bg-slate-200 dark:hover:bg-[#323b46] transition-colors font-bold">
                 −
               </button>
-              <input id="inventory-input" class="flex-1 bg-slate-50 dark:bg-[#283039] border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-center font-bold focus:ring-2 focus:ring-primary focus:border-primary" type="number" min="0" max="10" value="${coil.inventory}"/>
+              <input id="inventory-input" class="flex-1 bg-slate-50 dark:bg-[#283039] border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-center font-bold focus:ring-2 focus:ring-primary focus:border-primary" type="number" min="0" max="10" value="${escapeHtml(coil.inventory)}"/>
               <button id="increment-btn" class="size-10 flex items-center justify-center bg-slate-100 dark:bg-[#283039] rounded-lg text-lg hover:bg-slate-200 dark:hover:bg-[#323b46] transition-colors font-bold">
                 +
               </button>

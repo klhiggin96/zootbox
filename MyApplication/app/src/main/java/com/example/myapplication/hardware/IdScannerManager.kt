@@ -2,6 +2,7 @@ package com.example.myapplication.hardware
 
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
+import android.util.Log
 import com.hoho.android.usbserial.driver.FtdiSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
@@ -73,8 +74,25 @@ class IdScannerManager(
                     UsbSerialPort.PARITY_NONE
                 )
 
+                // Enable DTR and RTS to activate scanner
+                Log.d("IdScannerManager", "Enabling DTR/RTS control signals...")
+                serialPort?.dtr = true
+                serialPort?.rts = true
+
+                // Try sending trigger command (some scanners need this)
+                try {
+                    // Common trigger commands for ID scanners
+                    val triggerCommand = byteArrayOf(0x16.toByte()) // SYN character - common trigger
+                    serialPort?.write(triggerCommand, 1000)
+                    Log.d("IdScannerManager", "Sent trigger command")
+                    delay(100)
+                } catch (e: Exception) {
+                    Log.w("IdScannerManager", "Could not send trigger: ${e.message}")
+                }
+
                 _isReady.value = true
                 _connectionState.value = ScannerConnectionState.CONNECTED
+                Log.d("IdScannerManager", "Scanner initialized and ready")
                 startReading()
             } catch (e: Exception) {
                 _isReady.value = false
@@ -86,48 +104,64 @@ class IdScannerManager(
     
     private fun startReading() {
         scope.launch {
+            Log.d("IdScannerManager", "Start reading loop...")
             val buffer = ByteArray(4096)  // Increased from 1024 to handle full AAMVA data
             val accumulatedData = StringBuilder()
             var lastReadTime = 0L
+            var readCount = 0
 
             while (isActive && _isReady.value) {
                 try {
                     val port = serialPort ?: break
                     val bytesRead = port.read(buffer, 1000)
+                    readCount++
+
+                    if (readCount % 10 == 0) {
+                        Log.d("IdScannerManager", "Read attempt #$readCount, waiting for data...")
+                    }
 
                     if (bytesRead > 0) {
+                        Log.d("IdScannerManager", "Received $bytesRead bytes!")
                         val chunk = String(buffer, 0, bytesRead)
+                        Log.d("IdScannerManager", "Data preview: ${chunk.take(50)}")
                         accumulatedData.append(chunk)
                         lastReadTime = System.currentTimeMillis()
 
-                        // Check if we have a complete AAMVA scan
-                        if (accumulatedData.contains("ANSI") || accumulatedData.toString().startsWith("@")) {
-                            // Wait for data to stabilize (no new data for 200ms)
-                            delay(200)
-
-                            // Process if no new data arrived
-                            if (System.currentTimeMillis() - lastReadTime >= 200) {
-                                processScanData(accumulatedData.toString())
-                                accumulatedData.clear()
-                            }
+                        // Just log when we find the header, but keep accumulating
+                        if ((accumulatedData.contains("ANSI") || accumulatedData.toString().startsWith("@")) &&
+                            accumulatedData.length < 50) {
+                            Log.d("IdScannerManager", "Found AAMVA header, accumulating data...")
                         }
 
                     } else {
-                        // Timeout - check for stale data
-                        if (accumulatedData.isNotEmpty() &&
-                            System.currentTimeMillis() - lastReadTime > 2000) {
-                            // Flush stale partial data
-                            accumulatedData.clear()
+                        // Timeout - process complete data or flush stale data
+                        if (accumulatedData.isNotEmpty()) {
+                            val timeSinceLastRead = System.currentTimeMillis() - lastReadTime
+
+                            // If we have AAMVA data and no new data for 500ms, process it
+                            if (timeSinceLastRead > 500 &&
+                                (accumulatedData.contains("ANSI") || accumulatedData.toString().startsWith("@"))) {
+                                Log.d("IdScannerManager", "Processing complete scan data (${accumulatedData.length} chars)")
+                                processScanData(accumulatedData.toString())
+                                accumulatedData.clear()
+                            }
+                            // If data is really stale (>3 seconds), flush it
+                            else if (timeSinceLastRead > 3000) {
+                                Log.w("IdScannerManager", "Flushing stale partial data (${accumulatedData.length} chars)")
+                                accumulatedData.clear()
+                            }
                         }
                     }
 
                 } catch (e: IOException) {
+                    Log.e("IdScannerManager", "Read error: ${e.message}")
                     if (isActive) {
                         delay(100)
                         // Reconnection handled by BroadcastReceiver
                     }
                 }
             }
+            Log.d("IdScannerManager", "Read loop ended")
         }
     }
     

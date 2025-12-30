@@ -29,7 +29,7 @@ type RefillAllResponse struct {
 	CoilsUpdated int64  `json:"coils_updated"`
 }
 
-// RefillAll sets all 100 coils to inventory=10
+// RefillAll sets all 10 coils to inventory=10
 func (s *AdminService) RefillAll() (*RefillAllResponse, error) {
 	log.Info().Msg("Refilling all coils to inventory=10")
 

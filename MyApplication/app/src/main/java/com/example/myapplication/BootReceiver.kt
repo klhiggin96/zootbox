@@ -7,27 +7,26 @@ import android.util.Log
 
 /**
  * Broadcast receiver that launches MyApplication on device boot
+ *
+ * NOTE: Tailscale is configured as "Always-on VPN" and will auto-connect in background
+ * No need to launch Tailscale UI - it connects automatically via Android VPN service
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.i("BootReceiver", "Device booted, launching MyApplication")
-            
-            // Launch MainActivity with flags to bring to foreground
-            val launchIntent = Intent(context, MainActivity::class.java)
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            
-            // Add delay to ensure system is ready
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                try {
-                    context.startActivity(launchIntent)
-                    Log.i("BootReceiver", "MainActivity launched")
-                } catch (e: Exception) {
-                    Log.e("BootReceiver", "Failed to launch MainActivity", e)
-                }
-            }, 3000) // 3 second delay after boot
+            Log.i("BootReceiver", "Device booted, launching MyApplication (Tailscale auto-connects via Always-on VPN)")
+
+            // Launch MyApplication immediately
+            try {
+                val launchIntent = Intent(context, MainActivity::class.java)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                context.startActivity(launchIntent)
+                Log.i("BootReceiver", "MyApplication launched immediately - Tailscale connecting in background")
+            } catch (e: Exception) {
+                Log.e("BootReceiver", "Failed to launch MainActivity", e)
+            }
         }
     }
 }

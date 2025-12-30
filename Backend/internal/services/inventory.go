@@ -26,7 +26,7 @@ func (s *InventoryService) GetCoil(coilID string) (*models.Coil, error) {
 	return s.coilRepo.GetByID(coilID)
 }
 
-// GetAllCoils retrieves all 100 coils
+// GetAllCoils retrieves all 10 coils
 func (s *InventoryService) GetAllCoils() ([]*models.Coil, error) {
 	return s.coilRepo.GetAll()
 }

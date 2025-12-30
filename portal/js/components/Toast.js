@@ -6,6 +6,8 @@
  *   showToast('Operation successful!', 'success');
  */
 
+import { log } from '../utils/logger.js';
+
 /**
  * Show toast notification
  *
@@ -14,11 +16,11 @@
  * @param {number} duration - Auto-dismiss duration in ms (default: 5000)
  */
 export function showToast(message, type = 'info', duration = 5000) {
-  console.log(`showToast called: message="${message}", type="${type}", duration=${duration}`);
+  log(`showToast called: message="${message}", type="${type}", duration=${duration}`);
 
   const container = getToastContainer();
-  console.log('Toast container:', container);
-  console.log('Container children before:', container.children.length);
+  log('Toast container:', container);
+  log('Container children before:', container.children.length);
 
   // Create toast with Tailwind styles
   const toast = document.createElement('div');
@@ -61,7 +63,7 @@ export function showToast(message, type = 'info', duration = 5000) {
   toast.style.transform = 'translateX(0)';
   toast.style.pointerEvents = 'auto';
 
-  console.log('Toast className:', toast.className);
+  log('Toast className:', toast.className);
 
   // Icon
   const iconElement = document.createElement('span');
@@ -85,9 +87,9 @@ export function showToast(message, type = 'info', duration = 5000) {
   toast.appendChild(closeButton);
 
   container.appendChild(toast);
-  console.log('Container children after:', container.children.length);
-  console.log('Toast appended to container:', toast);
-  console.log('Toast computed style:', window.getComputedStyle(toast).display);
+  log('Container children after:', container.children.length);
+  log('Toast appended to container:', toast);
+  log('Toast computed style:', window.getComputedStyle(toast).display);
 
   // Auto-dismiss
   if (duration > 0) {

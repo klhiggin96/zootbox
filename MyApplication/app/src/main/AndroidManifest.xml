@@ -8,12 +8,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    
+
+    <!-- Kiosk Mode / Lock Task Mode Permissions -->
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
+
     <!-- Storage Permissions for Video Playback -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
 
     <application
+        android:name=".CartApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -27,7 +31,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:hardwareAccelerated="true"
-            android:configChanges="orientation|screenSize">
+            android:configChanges="orientation|screenSize"
+            android:lockTaskMode="if_whitelisted">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -52,6 +57,11 @@
         <activity android:name=".ProductDetailActivity" />
         <activity android:name=".IdScanActivity" />
         <activity
+            android:name=".CartActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:configChanges="orientation|screenSize" />
+        <activity
             android:name=".ScreensaverActivity"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize"
@@ -60,7 +70,12 @@
         <activity
             android:name=".AdminPanelActivity"
             android:exported="false"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="reversePortrait" />
+
+        <activity
+            android:name=".UsbDiagnosticActivity"
+            android:exported="false"
+            android:screenOrientation="reversePortrait" />
 
         <service
             android:name=".hardware.HardwareService"

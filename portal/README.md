@@ -140,9 +140,37 @@ Copy the entire `portal/` directory to the operator's Windows PC and open `index
 
 ## Security
 
-- **No Authentication**: Portal relies on network-level security (localhost binding + ADB/VPN)
-- **CORS**: Backend must whitelist portal origin (http://localhost:3000) in CORS headers
+### Production Deployment Model
+
+This portal is designed for deployment in a **secure, VPN-only environment**:
+
+- **Network Security**: Tailscale VPN provides authentication and access control
+- **No Public Internet**: Portal is NOT accessible from public internet
+- **Single Operator**: Designed for single-user operation on trusted PC
+
+### Security Features
+
+- ✅ **XSS Protection**: All user inputs HTML-escaped to prevent script injection
+- ✅ **Production Build**: Console logging stripped, code minified
+- ✅ **Input Validation**: All form inputs validated before processing
+- ✅ **CORS**: Backend restricts requests to localhost origins
+
+### Security Documentation
+
+For comprehensive security information, see **[SECURITY.md](SECURITY.md)**:
+- Network security model
+- Authentication design decisions
+- XSS protections implemented
+- Data storage security
+- Known limitations and risks
+- Deployment security checklist
+
+### Quick Security Notes
+
+- **No Authentication**: Portal relies on network-level security (Tailscale VPN)
+- **CORS**: Backend restricts requests from localhost origins only
 - **Data Storage**: LocalStorage contains only machine names and endpoint URLs (no sensitive data)
+- **Production Mode**: Run `npm run build` to create production bundle with security hardening
 
 ## Support
 

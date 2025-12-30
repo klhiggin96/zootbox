@@ -11,11 +11,13 @@ import { getCurrentMachine, updateMachine } from './machines.js';
 import { markCacheStale, clearStaleMarker } from './inventory.js';
 import { updateConnectionStatus } from '../components/StatusIndicator.js';
 import { apiClient } from '../api/client.js';
+import { log, warn, error } from '../utils/logger.js';
+import { UI } from '../config.js';
 
-const REFRESH_INTERVAL = 5000; // 5 seconds
-const HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
-const MAX_FAILED_ATTEMPTS = 3;
-const RETRY_INTERVAL = 30000; // 30 seconds
+const REFRESH_INTERVAL = UI.AUTO_REFRESH_INTERVAL;
+const HEALTH_CHECK_INTERVAL = UI.AUTO_REFRESH_INTERVAL;
+const MAX_FAILED_ATTEMPTS = UI.OFFLINE_THRESHOLD;
+const RETRY_INTERVAL = UI.AUTO_REFRESH_INTERVAL;
 
 let refreshTimer = null;
 let healthCheckTimer = null;
@@ -27,7 +29,7 @@ let isRefreshing = false;
  * Start auto-refresh
  */
 export function startAutoRefresh() {
-  console.log('Starting auto-refresh...');
+  log('Starting auto-refresh...');
 
   // Stop any existing timers
   stopAutoRefresh();
@@ -51,7 +53,7 @@ export function startAutoRefresh() {
  * Stop auto-refresh
  */
 export function stopAutoRefresh() {
-  console.log('Stopping auto-refresh...');
+  log('Stopping auto-refresh...');
 
   if (refreshTimer) {
     clearInterval(refreshTimer);
@@ -78,12 +80,12 @@ async function performRefresh() {
   const machine = getCurrentMachine();
 
   if (!machine) {
-    console.warn('No machine selected');
+    warn('No machine selected');
     return;
   }
 
   if (isRefreshing) {
-    console.log('Refresh already in progress, skipping...');
+    log('Refresh already in progress, skipping...');
     return;
   }
 
@@ -107,8 +109,8 @@ async function performRefresh() {
     // Clear stale marker
     clearStaleMarker(machine.id);
 
-  } catch (error) {
-    console.error('Refresh failed:', error);
+  } catch (err) {
+    error('Refresh failed:', err);
 
     // Increment failed attempts
     failedAttempts++;
@@ -127,7 +129,7 @@ async function performRefresh() {
  * Handle offline state
  */
 function handleOffline(machine) {
-  console.warn('Machine offline (3 consecutive failures)');
+  warn('Machine offline (3 consecutive failures)');
 
   // Stop auto-refresh
   if (refreshTimer) {
@@ -178,22 +180,22 @@ async function performHealthCheck() {
     const result = await apiClient.healthCheck(1); // 1 retry
 
     if (result.status === 'online') {
-      console.log('Health check: OK');
+      log('Health check: OK');
 
       // If we were offline, resume auto-refresh
       if (machine.status === 'offline') {
-        console.log('Machine back online, resuming auto-refresh');
+        log('Machine back online, resuming auto-refresh');
         startAutoRefresh();
       }
 
     } else {
-      console.warn('Health check: Failed');
+      warn('Health check: Failed');
       failedAttempts = MAX_FAILED_ATTEMPTS; // Trigger offline state
       handleOffline(machine);
     }
 
-  } catch (error) {
-    console.error('Health check error:', error);
+  } catch (err) {
+    error('Health check error:', err);
   }
 }
 
@@ -205,7 +207,7 @@ function startRetryTimer() {
     clearInterval(retryTimer);
   }
 
-  console.log('Starting retry timer (30s interval)');
+  log('Starting retry timer (30s interval)');
 
   retryTimer = setInterval(async () => {
     await attemptReconnect();
@@ -225,7 +227,7 @@ async function attemptReconnect() {
     return;
   }
 
-  console.log('Attempting to reconnect...');
+  log('Attempting to reconnect...');
 
   updateConnectionStatus('checking');
 
@@ -233,7 +235,7 @@ async function attemptReconnect() {
     const result = await apiClient.healthCheck(1);
 
     if (result.status === 'online') {
-      console.log('Reconnected successfully!');
+      log('Reconnected successfully!');
 
       // Clear retry timer
       if (retryTimer) {
@@ -245,12 +247,12 @@ async function attemptReconnect() {
       startAutoRefresh();
 
     } else {
-      console.log('Reconnect failed, will retry in 30s');
+      log('Reconnect failed, will retry in 30s');
       updateConnectionStatus('offline');
     }
 
-  } catch (error) {
-    console.error('Reconnect error:', error);
+  } catch (err) {
+    error('Reconnect error:', err);
     updateConnectionStatus('offline');
   }
 }

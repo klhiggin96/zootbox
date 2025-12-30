@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -113,7 +114,8 @@ class IdScanActivity : AppCompatActivity() {
             }
             ScanState.SCANNING -> {
                 startScanningAnimations()
-                startProgressSimulation()
+                // Disabled simulation - waiting for real hardware scan
+                // startProgressSimulation()
             }
             ScanState.SUCCESS -> {
                 stopScanningAnimations()
@@ -178,16 +180,27 @@ class IdScanActivity : AppCompatActivity() {
     }
     
     private fun setupHardwareScanning() {
+        Log.d("IdScanActivity", "Setting up hardware scanning...")
         val scannerManager = hardwareService?.getIdScannerManager()
         if (scannerManager == null) {
-            // Hardware not available - Silent fail for UI demo
+            Log.w("IdScanActivity", "Scanner manager is NULL - hardware not available")
+            Toast.makeText(this, "ID Scanner not connected", Toast.LENGTH_LONG).show()
             return
         }
-        
+
+        Log.d("IdScanActivity", "Scanner manager found, checking ready state...")
         scannerManager.clearScanResult()
-        
+
+        lifecycleScope.launch {
+            // Monitor ready state
+            scannerManager.isReady.collect { ready ->
+                Log.d("IdScanActivity", "Scanner ready state: $ready")
+            }
+        }
+
         lifecycleScope.launch {
             scannerManager.scanResult.collect { result ->
+                Log.d("IdScanActivity", "Scan result received: ${result?.success}")
                 result?.let { handleScanResult(it) }
             }
         }

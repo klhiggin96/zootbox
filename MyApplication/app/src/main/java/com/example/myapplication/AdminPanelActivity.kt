@@ -58,7 +58,7 @@ class AdminPanelActivity : AppCompatActivity() {
         private const val PREF_PIN_HASH = "admin_pin_hash"
         private const val PREF_FAILED_ATTEMPTS = "failed_attempts"
         private const val PREF_LOCKOUT_UNTIL = "lockout_until"
-        private const val DEFAULT_PIN = "1234"
+        private const val DEFAULT_PIN = "8888"
         private const val MAX_ATTEMPTS = 3
         private const val LOCKOUT_DURATION_MS = 30000L // 30 seconds
     }

@@ -3,9 +3,11 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // SyncHandler handles inventory synchronization from Android app to backend
@@ -52,18 +54,21 @@ func (h *SyncHandler) SyncInventory(w http.ResponseWriter, r *http.Request) {
 
 	var req InventorySyncRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("Error decoding sync request: %v", err)
+		log.Error().Err(err).Msg("Failed to decode sync request")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("Received inventory sync from %s with %d coils and %d transactions",
-		req.Source, len(req.Coils), len(req.Transactions))
+	log.Info().
+		Str("source", req.Source).
+		Int("coils", len(req.Coils)).
+		Int("transactions", len(req.Transactions)).
+		Msg("Received inventory sync")
 
 	// Start transaction
 	tx, err := h.db.Begin()
 	if err != nil {
-		log.Printf("Error starting transaction: %v", err)
+		log.Error().Err(err).Msg("Failed to start transaction")
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -79,11 +84,16 @@ func (h *SyncHandler) SyncInventory(w http.ResponseWriter, r *http.Request) {
 		`, coil.Inventory, coil.Status, coil.UpdatedAt, coil.ID)
 
 		if err != nil {
-			log.Printf("Error updating coil %s: %v", coil.ID, err)
-			continue
+			tx.Rollback()
+			http.Error(w, fmt.Sprintf("Failed to update coil %s: %v", coil.ID, err), http.StatusInternalServerError)
+			return
 		}
 
-		rowsAffected, _ := result.RowsAffected()
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			log.Warn().Err(err).Str("coil_id", coil.ID).Msg("Could not verify rows affected")
+			rowsAffected = 0
+		}
 		if rowsAffected > 0 {
 			coilsUpdated++
 		}
@@ -99,8 +109,9 @@ func (h *SyncHandler) SyncInventory(w http.ResponseWriter, r *http.Request) {
 		`, txn.ID, txn.CoilID, txn.Timestamp, txn.Status, txn.ID, txn.CoilID)
 
 		if err != nil {
-			log.Printf("Error inserting transaction %s: %v", txn.ID, err)
-			continue
+			tx.Rollback()
+			http.Error(w, fmt.Sprintf("Failed to insert transaction %s: %v", txn.ID, err), http.StatusInternalServerError)
+			return
 		}
 
 		transactionsAdded++
@@ -108,7 +119,7 @@ func (h *SyncHandler) SyncInventory(w http.ResponseWriter, r *http.Request) {
 
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing sync transaction: %v", err)
+		log.Error().Err(err).Msg("Failed to commit sync transaction")
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -122,9 +133,15 @@ func (h *SyncHandler) SyncInventory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Error().Err(err).Msg("Failed to encode sync response")
+		// Already wrote headers, can't change status code
+	}
 
-	log.Printf("Sync complete: %d coils updated, %d transactions added", coilsUpdated, transactionsAdded)
+	log.Info().
+		Int("coils_updated", coilsUpdated).
+		Int("transactions_added", transactionsAdded).
+		Msg("Sync complete")
 }
 
 // GetSyncStatus returns the last sync timestamp and stats
@@ -142,7 +159,7 @@ func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 	`).Scan(&lastSync)
 
 	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error getting sync status: %v", err)
+		log.Error().Err(err).Msg("Failed to get sync status")
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -154,7 +171,7 @@ func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 	`).Scan(&totalInventory)
 
 	if err != nil {
-		log.Printf("Error getting total inventory: %v", err)
+		log.Error().Err(err).Msg("Failed to get total inventory")
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
@@ -166,7 +183,7 @@ func (h *SyncHandler) GetSyncStatus(w http.ResponseWriter, r *http.Request) {
 	`).Scan(&transactionCount)
 
 	if err != nil {
-		log.Printf("Error getting transaction count: %v", err)
+		log.Error().Err(err).Msg("Failed to get transaction count")
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}

@@ -136,9 +136,17 @@ func setupLogging(level string) {
 	}
 	zerolog.SetGlobalLevel(logLevel)
 
-	// Configure human-friendly console output for development
-	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: time.RFC3339,
-	})
+	// Configure logging format based on environment
+	logFormat := os.Getenv("LOG_FORMAT")
+	if logFormat == "console" {
+		// Development: Human-friendly console output
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339,
+		})
+	} else {
+		// Production: JSON structured logs
+		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+		log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	}
 }

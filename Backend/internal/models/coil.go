@@ -2,9 +2,9 @@ package models
 
 import "time"
 
-// Coil represents a vending machine coil position (A1-J10)
+// Coil represents a vending machine coil position (A1-J1)
 type Coil struct {
-	ID           string    `json:"id" db:"id"`                                // A1-J10
+	ID           string    `json:"id" db:"id"`                                // A1-J1
 	Inventory    int       `json:"inventory" db:"inventory"`                  // 0-10
 	Status       string    `json:"status" db:"status"`                        // available | jammed
 	Version      int       `json:"version" db:"version"`                      // optimistic locking

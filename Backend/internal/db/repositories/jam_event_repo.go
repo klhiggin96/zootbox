@@ -47,6 +47,30 @@ func (r *JamEventRepository) GetAll() ([]*models.JamEvent, error) {
 	return r.query(query)
 }
 
+// GetByID retrieves a single jam event by ID
+func (r *JamEventRepository) GetByID(eventID string) (*models.JamEvent, error) {
+	query := `SELECT id, coil_id, timestamp, status, resolved_at
+	          FROM jam_events
+	          WHERE id = ?`
+
+	var event models.JamEvent
+	err := r.db.QueryRow(query, eventID).Scan(
+		&event.ID,
+		&event.CoilID,
+		&event.Timestamp,
+		&event.Status,
+		&event.ResolvedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("jam event %s not found", eventID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get jam event: %w", err)
+	}
+
+	return &event, nil
+}
+
 // GetByStatus retrieves jam events filtered by status
 func (r *JamEventRepository) GetByStatus(status string) ([]*models.JamEvent, error) {
 	query := `SELECT id, coil_id, timestamp, status, resolved_at

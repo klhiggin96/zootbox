@@ -1,7 +1,7 @@
 -- Migration 001: Initialize database schema
 -- Creates all tables for ZootBox Coil-Counter Backend
 
--- Table 1: coils (100 vending machine positions A1-J10)
+-- Table 1: coils (10 vending machine positions A1-J1)
 CREATE TABLE IF NOT EXISTS coils (
     id TEXT PRIMARY KEY,
     inventory INTEGER NOT NULL DEFAULT 10 CHECK (inventory >= 0 AND inventory <= 10),

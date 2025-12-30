@@ -42,7 +42,7 @@ func (r *CoilRepository) GetByID(coilID string) (*models.Coil, error) {
 	return &coil, nil
 }
 
-// GetAll retrieves all 100 coils
+// GetAll retrieves all 10 coils
 func (r *CoilRepository) GetAll() ([]*models.Coil, error) {
 	query := `SELECT id, inventory, status, version, link_group_id, updated_at
 	          FROM coils ORDER BY id`

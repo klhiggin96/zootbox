@@ -4,7 +4,9 @@
   "description": "Web-based inventory management portal for ZootBox vending machines",
   "main": "index.html",
   "scripts": {
-    "start": "live-server --port=3000 --host=localhost --open=/index.html",
+    "dev": "live-server --port=3000 --host=localhost --open=/index.html",
+    "build": "node build.js",
+    "serve:prod": "python -m http.server 3000 --directory dist",
     "serve": "python -m http.server 3000",
     "lint": "eslint js/**/*.js",
     "lint:fix": "eslint js/**/*.js --fix"
@@ -19,7 +21,9 @@
   "license": "PROPRIETARY",
   "devDependencies": {
     "eslint": "^8.57.0",
-    "live-server": "^1.2.2"
+    "glob": "^13.0.0",
+    "live-server": "^1.2.2",
+    "terser": "^5.44.1"
   },
   "engines": {
     "node": ">=14.0.0"
