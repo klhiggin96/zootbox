@@ -2,37 +2,12 @@ package api
 
 import (
 	"database/sql"
-	"net/http"
-	"path/filepath"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/rs/zerolog/log"
 	"github.com/zootbox/backend/internal/api/handlers"
 	chiMiddleware "github.com/zootbox/backend/internal/api/middleware"
-	"github.com/zootbox/backend/internal/portal"
 )
-
-// FileServer conveniently sets up a http.FileServer handler to serve static files
-func FileServer(r chi.Router, path string, root http.FileSystem) {
-	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
-	}
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-		rctx := chi.RouteContext(r.Context())
-		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
-		fs.ServeHTTP(w, r)
-	})
-}
 
 // NewRouter creates and configures the Chi router with all middleware and routes
 func NewRouter(db *sql.DB) *chi.Mux {
@@ -44,26 +19,6 @@ func NewRouter(db *sql.DB) *chi.Mux {
 	r.Use(middleware.Recoverer)               // Panic recovery
 	r.Use(chiMiddleware.CORS)                 // Localhost-only CORS
 	r.Use(chiMiddleware.CorrelationID)        // Extract/generate correlation ID
-
-	// Static files (CSS, JS, images)
-	workDir, _ := filepath.Abs(".")
-	filesDir := http.Dir(filepath.Join(workDir, "web", "static"))
-	FileServer(r, "/static", filesDir)
-
-	// Portal pages
-	templatesDir := filepath.Join(workDir, "web", "templates")
-	portalHandler, err := portal.NewPortalHandler(templatesDir)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to initialize portal handler")
-	} else {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/portal/dashboard", http.StatusTemporaryRedirect)
-		})
-		r.Get("/portal/dashboard", portalHandler.Dashboard)
-		r.Get("/portal/products", portalHandler.Products)
-		r.Get("/portal/transactions", portalHandler.Transactions)
-		r.Get("/portal/inventory", portalHandler.Inventory)
-	}
 
 	// Health and metrics endpoints (no prefix)
 	healthHandler := handlers.NewHealthHandler(db)
@@ -120,15 +75,6 @@ func NewRouter(db *sql.DB) *chi.Mux {
 		r.Get("/cart/{id}", cartHandler.GetCart)
 		r.Post("/cart/{id}/checkout", cartHandler.CheckoutCart)
 		r.Post("/cart/{id}/cancel", cartHandler.CancelCart)
-
-		// Portal analytics endpoints
-		analyticsHandler := portal.NewAnalyticsHandler(db)
-		r.Get("/portal/analytics/metrics", analyticsHandler.Metrics)
-		r.Get("/portal/analytics/revenue-by-day", analyticsHandler.RevenueByDay)
-		r.Get("/portal/analytics/payment-methods", analyticsHandler.PaymentMethods)
-		r.Get("/portal/analytics/top-products", analyticsHandler.TopProducts)
-		r.Get("/portal/analytics/recent-transactions", analyticsHandler.RecentTransactions)
-		r.Get("/portal/analytics/transactions", analyticsHandler.AllTransactions)
 	})
 
 	return r

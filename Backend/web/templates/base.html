@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - ZootBox Portal</title>
+    <link rel="stylesheet" href="/static/css/portal.css">
+    {{block "extra_css" .}}{{end}}
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>ZootBox</h1>
+                <p class="subtitle">Inventory Portal</p>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-item {{if eq .Active "dashboard"}}active{{end}}">
+                    <a href="/portal/dashboard">
+                        <span class="icon">📊</span>
+                        <span class="label">Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item {{if eq .Active "products"}}active{{end}}">
+                    <a href="/portal/products">
+                        <span class="icon">📦</span>
+                        <span class="label">Products</span>
+                    </a>
+                </li>
+                <li class="nav-item {{if eq .Active "transactions"}}active{{end}}">
+                    <a href="/portal/transactions">
+                        <span class="icon">💳</span>
+                        <span class="label">Transactions</span>
+                    </a>
+                </li>
+                <li class="nav-item {{if eq .Active "inventory"}}active{{end}}">
+                    <a href="/portal/inventory">
+                        <span class="icon">🔢</span>
+                        <span class="label">Inventory</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="page-header">
+                <h2>{{.Title}}</h2>
+                {{if .Subtitle}}
+                <p class="page-subtitle">{{.Subtitle}}</p>
+                {{end}}
+            </header>
+
+            <div class="content">
+                {{block "content" .}}{{end}}
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/portal.js"></script>
+    {{block "extra_js" .}}{{end}}
+</body>
+</html>

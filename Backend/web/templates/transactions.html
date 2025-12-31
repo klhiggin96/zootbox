@@ -1,0 +1,137 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<!-- Filter Bar -->
+<div class="action-bar">
+    <div class="filters">
+        <select id="filter-status" onchange="filterTransactions()">
+            <option value="">All Statuses</option>
+            <option value="success">Success</option>
+            <option value="refunded">Refunded</option>
+            <option value="failed">Failed</option>
+        </select>
+
+        <select id="filter-payment-method" onchange="filterTransactions()">
+            <option value="">All Payment Methods</option>
+            <option value="card">Card</option>
+            <option value="nfc">NFC</option>
+            <option value="cash">Cash</option>
+            <option value="free">Free/Test</option>
+        </select>
+
+        <input type="date" id="filter-start-date" onchange="filterTransactions()">
+        <span class="date-separator">to</span>
+        <input type="date" id="filter-end-date" onchange="filterTransactions()">
+    </div>
+
+    <button class="btn btn-secondary" onclick="exportTransactions()">
+        <span>📥</span> Export CSV
+    </button>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-row">
+    <div class="stat-box">
+        <span class="stat-label">Total Transactions</span>
+        <span class="stat-value" id="total-count">0</span>
+    </div>
+    <div class="stat-box">
+        <span class="stat-label">Total Revenue</span>
+        <span class="stat-value" id="total-revenue">$0.00</span>
+    </div>
+    <div class="stat-box">
+        <span class="stat-label">Successful</span>
+        <span class="stat-value success" id="success-count">0</span>
+    </div>
+    <div class="stat-box">
+        <span class="stat-label">Refunded</span>
+        <span class="stat-value refund" id="refund-count">0</span>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="chart-container full-width">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Transaction ID</th>
+                <th>Timestamp</th>
+                <th>Product</th>
+                <th>Coil</th>
+                <th>Amount</th>
+                <th>Payment Method</th>
+                <th>Status</th>
+                <th>Nayax ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="transactions-table">
+            <tr>
+                <td colspan="9" class="loading">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<div class="pagination">
+    <button id="prev-page" class="btn btn-secondary" onclick="prevPage()" disabled>Previous</button>
+    <span id="page-info">Page 1 of 1</span>
+    <button id="next-page" class="btn btn-secondary" onclick="nextPage()" disabled>Next</button>
+</div>
+
+<!-- Transaction Detail Modal -->
+<div id="transaction-detail-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Transaction Details</h3>
+            <button class="close-btn" onclick="closeTransactionDetailModal()">&times;</button>
+        </div>
+        <div id="transaction-detail-content">
+            <div class="detail-row">
+                <span class="detail-label">Transaction ID:</span>
+                <span class="detail-value" id="detail-id"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Timestamp:</span>
+                <span class="detail-value" id="detail-timestamp"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Product:</span>
+                <span class="detail-value" id="detail-product"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Coil:</span>
+                <span class="detail-value" id="detail-coil"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Amount:</span>
+                <span class="detail-value" id="detail-amount"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value" id="detail-payment-method"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Status:</span>
+                <span class="detail-value" id="detail-payment-status"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Nayax Transaction ID:</span>
+                <span class="detail-value" id="detail-nayax-id"></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Currency:</span>
+                <span class="detail-value" id="detail-currency"></span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeTransactionDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "extra_js"}}
+<script src="/static/js/transactions.js"></script>
+{{end}}

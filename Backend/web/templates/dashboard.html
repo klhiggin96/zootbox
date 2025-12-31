@@ -1,0 +1,105 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<!-- Key Metrics Cards -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-icon">💵</div>
+        <div class="metric-content">
+            <h3 class="metric-label">Today's Revenue</h3>
+            <p class="metric-value" id="today-revenue">$0.00</p>
+            <span class="metric-change positive" id="today-change">+0%</span>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon">🛒</div>
+        <div class="metric-content">
+            <h3 class="metric-label">Today's Sales</h3>
+            <p class="metric-value" id="today-sales">0</p>
+            <span class="metric-change positive" id="sales-change">+0%</span>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon">📈</div>
+        <div class="metric-content">
+            <h3 class="metric-label">Avg Transaction</h3>
+            <p class="metric-value" id="avg-transaction">$0.00</p>
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-icon">⚠️</div>
+        <div class="metric-content">
+            <h3 class="metric-label">Refunds</h3>
+            <p class="metric-value" id="refunds">0</p>
+            <span class="metric-change negative" id="refund-change">0%</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="charts-row">
+    <!-- Revenue Chart -->
+    <div class="chart-container">
+        <h3 class="chart-title">Revenue (Last 7 Days)</h3>
+        <canvas id="revenue-chart"></canvas>
+    </div>
+
+    <!-- Payment Method Breakdown -->
+    <div class="chart-container">
+        <h3 class="chart-title">Payment Methods</h3>
+        <canvas id="payment-method-chart"></canvas>
+    </div>
+</div>
+
+<!-- Top Products Table -->
+<div class="chart-container full-width">
+    <h3 class="chart-title">Top Selling Products (This Week)</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Units Sold</th>
+                <th>Revenue</th>
+                <th>Trend</th>
+            </tr>
+        </thead>
+        <tbody id="top-products-table">
+            <tr>
+                <td colspan="6" class="loading">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Recent Transactions -->
+<div class="chart-container full-width">
+    <h3 class="chart-title">Recent Transactions</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Product</th>
+                <th>Coil</th>
+                <th>Amount</th>
+                <th>Payment Method</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="recent-transactions-table">
+            <tr>
+                <td colspan="6" class="loading">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{{end}}
+
+{{define "extra_js"}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/dashboard.js"></script>
+{{end}}

@@ -1,0 +1,115 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<!-- Action Bar -->
+<div class="action-bar">
+    <button class="btn btn-primary" onclick="showCreateProductModal()">
+        <span>+</span> Add New Product
+    </button>
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search products..." onkeyup="filterProducts()">
+    </div>
+</div>
+
+<!-- Products Table -->
+<div class="chart-container full-width">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Age Restriction</th>
+                <th>Assigned Coils</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="products-table">
+            <tr>
+                <td colspan="7" class="loading">Loading...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Create/Edit Product Modal -->
+<div id="product-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Add New Product</h3>
+            <button class="close-btn" onclick="closeProductModal()">&times;</button>
+        </div>
+        <form id="product-form" onsubmit="saveProduct(event)">
+            <div class="form-group">
+                <label for="product-name">Product Name</label>
+                <input type="text" id="product-name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="product-category">Category</label>
+                <select id="product-category" name="category" required>
+                    <option value="">Select category...</option>
+                    <option value="Nicotine Pouches">Nicotine Pouches</option>
+                    <option value="Energy Drinks">Energy Drinks</option>
+                    <option value="Snacks">Snacks</option>
+                    <option value="Beverages">Beverages</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="product-price">Price ($)</label>
+                    <input type="number" id="product-price" name="price" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="product-age">Age Restriction</label>
+                    <select id="product-age" name="age_restriction">
+                        <option value="0">None</option>
+                        <option value="18">18+</option>
+                        <option value="21">21+</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" id="product-id" name="id">
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Product</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assign Coil Modal -->
+<div id="assign-coil-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Assign Product to Coil</h3>
+            <button class="close-btn" onclick="closeAssignCoilModal()">&times;</button>
+        </div>
+        <form id="assign-coil-form" onsubmit="assignCoil(event)">
+            <div class="form-group">
+                <label for="coil-select">Select Coil</label>
+                <select id="coil-select" name="coil_id" required>
+                    <option value="">Loading coils...</option>
+                </select>
+            </div>
+
+            <input type="hidden" id="assign-product-id" name="product_id">
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAssignCoilModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Assign Coil</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "extra_js"}}
+<script src="/static/js/products.js"></script>
+{{end}}
