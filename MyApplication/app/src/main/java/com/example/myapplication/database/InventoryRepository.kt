@@ -297,6 +297,41 @@ class InventoryRepository private constructor(context: Context) {
     }
 
     /**
+     * Save a complete transaction with payment information
+     * Returns transaction ID
+     */
+    fun saveTransaction(transaction: Transaction): String {
+        val values = ContentValues().apply {
+            put(InventoryDatabase.COLUMN_TRANSACTION_ID, transaction.id)
+            put(InventoryDatabase.COLUMN_TRANSACTION_COIL_ID, transaction.coilId)
+            put(InventoryDatabase.COLUMN_TRANSACTION_STATUS, transaction.status)
+            put(InventoryDatabase.COLUMN_TIMESTAMP, transaction.timestamp)
+            put(InventoryDatabase.COLUMN_SYNCED, if (transaction.synced) 1 else 0)
+
+            // Payment fields
+            transaction.amount?.let { put(InventoryDatabase.COLUMN_AMOUNT, it) }
+            transaction.paymentMethod?.let { put(InventoryDatabase.COLUMN_PAYMENT_METHOD, it) }
+            transaction.paymentStatus?.let { put(InventoryDatabase.COLUMN_PAYMENT_STATUS, it) }
+            transaction.nayaxTransactionId?.let { put(InventoryDatabase.COLUMN_NAYAX_TRANSACTION_ID, it) }
+            transaction.productId?.let { put(InventoryDatabase.COLUMN_PRODUCT_ID, it) }
+        }
+
+        val result = db.insert(
+            InventoryDatabase.TABLE_TRANSACTIONS,
+            null,
+            values
+        )
+
+        if (result != -1L) {
+            Log.d(TAG, "Saved transaction: ${transaction.id} for coil ${transaction.coilId} with status ${transaction.status}, amount ${transaction.amount}")
+            return transaction.id
+        } else {
+            Log.e(TAG, "Failed to save transaction for coil ${transaction.coilId}")
+            return ""
+        }
+    }
+
+    /**
      * Get transaction history (most recent first)
      */
     fun getTransactionHistory(limit: Int = 100): List<Transaction> {

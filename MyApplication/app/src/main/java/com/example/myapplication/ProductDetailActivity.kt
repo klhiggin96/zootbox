@@ -88,6 +88,7 @@ class ProductDetailActivity : AppCompatActivity() {
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
 
     private lateinit var idScanLauncher: ActivityResultLauncher<Intent>
+    private var isAddToCartFlow = false  // Track whether we're in "Add to Cart" or "Buy Now" flow
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 100
@@ -130,8 +131,15 @@ class ProductDetailActivity : AppCompatActivity() {
         // Register Activity Result Launcher for ID Scan
         idScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
-                Toast.makeText(this, "Verification Successful! Proceeding to checkout...", Toast.LENGTH_SHORT).show()
-                processCheckout()
+                Toast.makeText(this, "Verification Successful!", Toast.LENGTH_SHORT).show()
+                if (isAddToCartFlow) {
+                    // Navigate to cart after successful ID verification
+                    CartActivity.start(this)
+                    finish()
+                } else {
+                    // Proceed to checkout for "Buy Now" flow
+                    processCheckout()
+                }
             } else {
                 Toast.makeText(this, "Verification Failed or Cancelled.", Toast.LENGTH_SHORT).show()
             }
@@ -487,20 +495,21 @@ class ProductDetailActivity : AppCompatActivity() {
             Toast.makeText(
                 this,
                 "Added ${quantity}x ${productName} to cart!",
-                Toast.LENGTH_LONG
-            ).show()
-
-            // Show option to view cart
-            val cartSummary = cartManager.getSummary()
-            Toast.makeText(
-                this,
-                "Cart: $cartSummary - Tap to view",
                 Toast.LENGTH_SHORT
             ).show()
 
-            // Optional: Navigate to cart or finish activity
-            // CartActivity.start(this)
-            // finish()
+            // Navigate to ID scan if age-restricted, otherwise go to cart
+            if (ageRestriction > 0) {
+                // Launch ID verification before going to cart
+                isAddToCartFlow = true
+                val intent = Intent(this, IdScanActivity::class.java)
+                intent.putExtra("requiredAge", ageRestriction)
+                idScanLauncher.launch(intent)
+            } else {
+                // No age restriction - go directly to cart
+                CartActivity.start(this)
+                finish()
+            }
         } else {
             val errorMessage = result.exceptionOrNull()?.message ?: "Failed to add to cart"
             Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
@@ -542,7 +551,8 @@ class ProductDetailActivity : AppCompatActivity() {
 
         if (checkAge > 0) {
             Log.d("ProductDetailActivity", "Launching ID Scan")
-            // Launch ID Verification
+            // Launch ID Verification (Buy Now flow - goes to checkout after verification)
+            isAddToCartFlow = false
             val intent = Intent(this, IdScanActivity::class.java)
             intent.putExtra("requiredAge", checkAge)
             idScanLauncher.launch(intent)
@@ -620,7 +630,7 @@ class ProductDetailActivity : AppCompatActivity() {
                     ).show()
 
                     var allVendsSuccessful = true
-                    repeat(quantity) { index ->
+                    for (index in 0 until quantity) {
                         Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantity from coil ${coil.id}")
 
                         val vendSuccess = motorManager.vendMotor(coil.id)
@@ -639,8 +649,8 @@ class ProductDetailActivity : AppCompatActivity() {
                                 nayaxTransactionId = nayaxTransactionId,
                                 productId = null  // TODO: Get from product-coil mapping
                             )
-                            inventoryRepo.logTransaction(transaction)
-                            Log.d("ProductDetailActivity", "Logged transaction: ${transaction.id}")
+                            inventoryRepo.saveTransaction(transaction)
+                            Log.d("ProductDetailActivity", "Saved transaction: ${transaction.id}")
                         } else {
                             // Vend failed (motor jam)
                             Log.e("ProductDetailActivity", "Motor vend FAILED for coil ${coil.id}")
@@ -656,7 +666,7 @@ class ProductDetailActivity : AppCompatActivity() {
                                 nayaxTransactionId = nayaxTransactionId,
                                 productId = null
                             )
-                            inventoryRepo.logTransaction(jamTransaction)
+                            inventoryRepo.saveTransaction(jamTransaction)
 
                             // Create jam event for backend alerting
                             // inventoryRepo.createJamEvent(coil.id)
@@ -739,7 +749,7 @@ class ProductDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 var allVendsSuccessful = true
-                repeat(quantity) { index ->
+                for (index in 0 until quantity) {
                     Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantity from coil ${coil.id}")
 
                     val vendSuccess = motorManager.vendMotor(coil.id)
@@ -756,7 +766,7 @@ class ProductDetailActivity : AppCompatActivity() {
                             nayaxTransactionId = null,
                             productId = null
                         )
-                        inventoryRepo.logTransaction(transaction)
+                        inventoryRepo.saveTransaction(transaction)
                     } else {
                         allVendsSuccessful = false
                         val jamTransaction = Transaction.createWithPayment(
@@ -768,7 +778,7 @@ class ProductDetailActivity : AppCompatActivity() {
                             nayaxTransactionId = null,
                             productId = null
                         )
-                        inventoryRepo.logTransaction(jamTransaction)
+                        inventoryRepo.saveTransaction(jamTransaction)
                         break
                     }
                 }

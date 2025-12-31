@@ -269,8 +269,8 @@ class CartActivity : AppCompatActivity() {
                                 nayaxTransactionId = nayaxTransactionId,
                                 productId = product.id
                             )
-                            inventoryRepo.logTransaction(transaction)
-                            Log.d(TAG, "Logged transaction: ${transaction.id}")
+                            inventoryRepo.saveTransaction(transaction)
+                            Log.d(TAG, "Saved transaction: ${transaction.id}")
                         } else {
                             // Vend failed (motor jam)
                             Log.e(TAG, "Motor vend FAILED for coil $coilId")
@@ -286,7 +286,7 @@ class CartActivity : AppCompatActivity() {
                                 nayaxTransactionId = nayaxTransactionId,
                                 productId = product.id
                             )
-                            inventoryRepo.logTransaction(jamTransaction)
+                            inventoryRepo.saveTransaction(jamTransaction)
 
                             break  // Stop vending on first failure
                         }
@@ -392,7 +392,7 @@ class CartActivity : AppCompatActivity() {
                             nayaxTransactionId = null,
                             productId = product.id
                         )
-                        inventoryRepo.logTransaction(transaction)
+                        inventoryRepo.saveTransaction(transaction)
                     } else {
                         allVendsSuccessful = false
                         break

@@ -97,18 +97,22 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Start hardware service
-        try {
-            val serviceIntent = Intent(this, com.example.myapplication.hardware.HardwareService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                @Suppress("DEPRECATION")
-                startService(serviceIntent)
+        // Delay hardware service start by 10 seconds to allow USB permission database to load
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try {
+                val serviceIntent = Intent(this, com.example.myapplication.hardware.HardwareService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    @Suppress("DEPRECATION")
+                    startService(serviceIntent)
+                }
+                Log.i("MainActivity", "HardwareService started after 10s delay")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to start HardwareService", e)
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        }, 10000) // 10 second delay
 
         // Auto-start backend and Tailscale
         BootManager.startZootBoxServices(this)
