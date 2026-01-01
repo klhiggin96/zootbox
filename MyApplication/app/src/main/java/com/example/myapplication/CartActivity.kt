@@ -13,6 +13,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,6 +35,9 @@ class CartActivity : AppCompatActivity() {
     // Hardware Service
     private var hardwareService: HardwareService? = null
     private var serviceBound = false
+
+    // ID Scan launcher
+    private lateinit var idScanLauncher: ActivityResultLauncher<Intent>
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -74,6 +79,18 @@ class CartActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cart)
+
+        // Register ID scan result launcher
+        idScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // ID verification successful, proceed with checkout
+                Toast.makeText(this, "Age verification successful!", Toast.LENGTH_SHORT).show()
+                processCheckoutAfterVerification()
+            } else {
+                // ID verification failed or cancelled
+                Toast.makeText(this, "Age verification required for checkout.", Toast.LENGTH_LONG).show()
+            }
+        }
 
         // Initialize dependencies
         inventoryRepo = InventoryRepository.getInstance(this)
@@ -169,7 +186,38 @@ class CartActivity : AppCompatActivity() {
     }
 
     /**
-     * Process multi-item checkout
+     * Process checkout - Check for age restrictions first
+     *
+     * Flow:
+     * 1. Check if any items require age verification
+     * 2. If yes, launch ID scan activity
+     * 3. Otherwise, proceed with checkout directly
+     */
+    private fun processCheckout() {
+        // Check if any items in cart require age verification
+        val requiresAgeVerification = cartManager.cartItems.value.any { cartItem ->
+            cartItem.product.requiresAgeVerification()
+        }
+
+        if (requiresAgeVerification) {
+            // Get highest age requirement
+            val maxAge = cartManager.cartItems.value
+                .maxOfOrNull { it.product.ageRestriction } ?: 21
+
+            Log.i(TAG, "Cart contains age-restricted items, launching ID scan (required age: $maxAge)")
+
+            // Launch ID verification
+            val intent = Intent(this, IdScanActivity::class.java)
+            intent.putExtra("requiredAge", maxAge)
+            idScanLauncher.launch(intent)
+        } else {
+            // No age verification needed, proceed directly
+            processCheckoutAfterVerification()
+        }
+    }
+
+    /**
+     * Process multi-item checkout after age verification (if needed)
      *
      * Flow:
      * 1. Validate cart (inventory, no jams)
@@ -180,7 +228,7 @@ class CartActivity : AppCompatActivity() {
      *    - Confirm vend to Nayax (or refund if any fail)
      * 4. Clear cart on success
      */
-    private fun processCheckout() {
+    private fun processCheckoutAfterVerification() {
         // Validate cart
         val validationResult = cartManager.validateCart()
         if (validationResult.isFailure) {

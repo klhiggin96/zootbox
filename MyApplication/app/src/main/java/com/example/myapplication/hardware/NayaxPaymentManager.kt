@@ -195,13 +195,13 @@ class NayaxPaymentManager(
                 serialPort = driver.ports[0]
                 serialPort?.open(usbManager.openDevice(usbDevice))
                 serialPort?.setParameters(
-                    HardwareService.SERIAL_BAUD_RATE,  // 115200 bps
+                    HardwareService.NAYAX_BAUD_RATE,  // CRITICAL: Marshall Protocol requires 115200 bps
                     8,
                     UsbSerialPort.STOPBITS_1,
                     UsbSerialPort.PARITY_NONE
                 )
 
-                Log.i(TAG, "Serial port opened at ${HardwareService.SERIAL_BAUD_RATE} bps")
+                Log.i(TAG, "Serial port opened at ${HardwareService.NAYAX_BAUD_RATE} bps")
 
                 _isReady.value = true
                 _paymentState.value = PaymentState.READY

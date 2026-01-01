@@ -46,7 +46,12 @@ class HardwareService : Service() {
         const val NAYAX_VID = 0x26f1
         const val NAYAX_PID = 0x5650
         const val NAYAX_TTY_ACM = "/dev/ttyACM0"
-        const val SERIAL_BAUD_RATE = 115200  // Marshall Protocol requires 115200 bps
+
+        // Baud rates - CRITICAL: Different devices require different speeds!
+        const val ID_SCANNER_BAUD_RATE = 9600    // E-Seek M260 requires 9600 bps
+        const val NAYAX_BAUD_RATE = 115200       // Marshall Protocol requires 115200 bps
+        @Deprecated("Use device-specific baud rates", ReplaceWith("ID_SCANNER_BAUD_RATE or NAYAX_BAUD_RATE"))
+        const val SERIAL_BAUD_RATE = 115200      // Kept for backwards compatibility
     }
     
     inner class LocalBinder : Binder() {

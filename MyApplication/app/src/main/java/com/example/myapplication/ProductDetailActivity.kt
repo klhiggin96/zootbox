@@ -132,14 +132,11 @@ class ProductDetailActivity : AppCompatActivity() {
         idScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 Toast.makeText(this, "Verification Successful!", Toast.LENGTH_SHORT).show()
-                if (isAddToCartFlow) {
-                    // Navigate to cart after successful ID verification
-                    CartActivity.start(this)
-                    finish()
-                } else {
-                    // Proceed to checkout for "Buy Now" flow
+                if (!isAddToCartFlow) {
+                    // Proceed to checkout for "Buy Now" flow only
                     processCheckout()
                 }
+                // For Add to Cart flow, just stay on product detail page after success
             } else {
                 Toast.makeText(this, "Verification Failed or Cancelled.", Toast.LENGTH_SHORT).show()
             }
@@ -498,18 +495,15 @@ class ProductDetailActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
 
-            // Navigate to ID scan if age-restricted, otherwise go to cart
+            // Launch ID scan if age-restricted
             if (ageRestriction > 0) {
-                // Launch ID verification before going to cart
+                // Launch ID verification
                 isAddToCartFlow = true
                 val intent = Intent(this, IdScanActivity::class.java)
                 intent.putExtra("requiredAge", ageRestriction)
                 idScanLauncher.launch(intent)
-            } else {
-                // No age restriction - go directly to cart
-                CartActivity.start(this)
-                finish()
             }
+            // No navigation - stay on product detail page
         } else {
             val errorMessage = result.exceptionOrNull()?.message ?: "Failed to add to cart"
             Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()

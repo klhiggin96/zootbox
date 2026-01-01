@@ -68,7 +68,7 @@ class IdScannerManager(
                 serialPort = driver.ports[0]
                 serialPort?.open(usbManager.openDevice(usbDevice))
                 serialPort?.setParameters(
-                    HardwareService.SERIAL_BAUD_RATE,
+                    HardwareService.ID_SCANNER_BAUD_RATE,  // CRITICAL: Must be 9600 for E-Seek M260
                     8,
                     UsbSerialPort.STOPBITS_1,
                     UsbSerialPort.PARITY_NONE
@@ -122,6 +122,8 @@ class IdScannerManager(
 
                     if (bytesRead > 0) {
                         Log.d("IdScannerManager", "Received $bytesRead bytes!")
+                        val hexDump = buffer.take(kotlin.math.min(20, bytesRead)).joinToString(" ") { "%02X".format(it) }
+                        Log.d("IdScannerManager", "Hex dump (first 20 bytes): $hexDump")
                         val chunk = String(buffer, 0, bytesRead)
                         Log.d("IdScannerManager", "Data preview: ${chunk.take(50)}")
                         accumulatedData.append(chunk)
@@ -148,6 +150,8 @@ class IdScannerManager(
                             // If data is really stale (>3 seconds), flush it
                             else if (timeSinceLastRead > 3000) {
                                 Log.w("IdScannerManager", "Flushing stale partial data (${accumulatedData.length} chars)")
+                                Log.d("IdScannerManager", "Data preview (first 200 chars): ${accumulatedData.take(200)}")
+                                Log.d("IdScannerManager", "Has ANSI: ${accumulatedData.contains("ANSI")}, Starts with @: ${accumulatedData.toString().startsWith("@")}")
                                 accumulatedData.clear()
                             }
                         }
