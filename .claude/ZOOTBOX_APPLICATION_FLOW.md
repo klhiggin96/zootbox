@@ -50,16 +50,34 @@ graph TB
         PDA_DecQty --> PDA_Display
         PDA_Wait -->|Tap ADD TO CART| PDA_CheckAge{Age Restricted?<br/>ageRestriction > 0}
         PDA_CheckAge -->|Yes: 18 or 21| PDA_NavID[Launch IdScanActivity<br/>Pass requiredAge]
-        PDA_CheckAge -->|No Restriction| PDA_AddCart[Show Success Toast<br/>"Added to cart! Total: $X.XX"]
-        PDA_AddCart --> PDA_Complete([Finish Activity])
+        PDA_CheckAge -->|No Restriction| PDA_AddCart[Show Success Toast<br/>"Added to cart!"]
+        PDA_AddCart --> PDA_Display
         PDA_ResultWait{ID Scan Result?}
-        PDA_ResultWait -->|RESULT_OK| PDA_Verified[Show Verification Success<br/>"Proceeding to checkout..."]
-        PDA_Verified --> PDA_AddCart
+        PDA_ResultWait -->|RESULT_OK| PDA_Verified[Show Verification Success<br/>Item added to cart]
+        PDA_Verified --> PDA_Display
         PDA_ResultWait -->|RESULT_CANCELLED| PDA_Failed[Show Failure Toast<br/>"Verification Failed"]
         PDA_Failed --> PDA_Display
     end
 
     PDA_NavID --> IdScanActivity
+
+    subgraph CartActivity["CartActivity - Shopping Cart Checkout (Future)"]
+        CART_Init[Initialize<br/>• Load cart items<br/>• Calculate total<br/>• Bind HardwareService] --> CART_Display[Display Cart Items<br/>RecyclerView list]
+        CART_Display --> CART_Wait{User Action?}
+        CART_Wait -->|Tap Back| CART_Return([Return to ProductGrid])
+        CART_Wait -->|Tap Checkout| CART_CheckAge{Any Age Restricted?}
+        CART_CheckAge -->|Yes| CART_NavID[Launch IdScanActivity<br/>Pass max age required]
+        CART_CheckAge -->|No| CART_Payment[Process Payment<br/>NayaxPaymentManager]
+        CART_ResultWait{ID Scan Result?}
+        CART_ResultWait -->|RESULT_OK| CART_Success[Show Success Toast]
+        CART_Success --> CART_Payment
+        CART_ResultWait -->|RESULT_CANCELLED| CART_Failed[Show Error<br/>"Age verification required"]
+        CART_Failed --> CART_Display
+        CART_Payment --> CART_Vend[Sequential Vend<br/>MotorControlManager]
+        CART_Vend --> CART_Complete([Clear Cart & Finish])
+    end
+
+    CART_NavID --> IdScanActivity
 
     subgraph IdScanActivity["IdScanActivity - Age Verification"]
         ISA_Init[Initialize<br/>• Get requiredAge from Intent<br/>• Bind to HardwareService<br/>• Setup UI layers] --> ISA_Idle[STATE: IDLE<br/>Show "PLACE ID ON SCANNER"]
@@ -78,15 +96,16 @@ graph TB
     ISA_OK --> PDA_ResultWait
 
     subgraph HardwareLayer["Hardware Service Layer (Background)"]
-        HW_Service[HardwareService<br/>Foreground Service] -.-> HW_IDScanner[IdScannerManager<br/>VID=0x0403 PID=0x6001<br/>FTDI Serial 115200 baud]
-        HW_Service -.-> HW_Payment[NayaxPaymentManager<br/>VID=0x26f1 PID=0x5650<br/>CDC-ACM Serial 115200 baud]
+        HW_Service[HardwareService<br/>Foreground Service] -.-> HW_IDScanner[IdScannerManager<br/>VID=0x0403 PID=0x6001<br/>FTDI Serial 9600 baud]
+        HW_Service -.-> HW_Payment[NayaxPaymentManager<br/>VID=0x0403 PID=0x6015<br/>FTDI Serial 115200 baud<br/>Marshall SDK]
         HW_IDScanner -.->|Scan Result| ISA_HardwareWait
-        HW_Payment -.->|Future: Payment Flow| PDA_AddCart
+        HW_Payment -.->|Payment Flow| CART_Payment
     end
 
     style MainActivity fill:#e1f5ff
     style ProductGridActivity fill:#fff3e0
     style ProductDetailActivity fill:#f3e5f5
+    style CartActivity fill:#fff8e1
     style IdScanActivity fill:#e8f5e9
     style ScreensaverActivity fill:#fce4ec
     style HardwareLayer fill:#f5f5f5,stroke-dasharray: 5 5
@@ -95,6 +114,8 @@ graph TB
     style PDA_Complete fill:#f44336,color:#fff
     style PGA_Return1 fill:#f44336,color:#fff
     style PDA_Return fill:#f44336,color:#fff
+    style CART_Return fill:#f44336,color:#fff
+    style CART_Complete fill:#f44336,color:#fff
     style SSA_Exit fill:#f44336,color:#fff
     style ISA_OK fill:#4caf50,color:#fff
 ```
@@ -196,8 +217,8 @@ stateDiagram-v2
     VerificationFailed --> ShowFailureToast
     ShowFailureToast --> DisplayProduct
 
-    AddToCart --> ShowCartToast: "Added to cart! Total: $X.XX"
-    ShowCartToast --> [*]: finish()
+    AddToCart --> ShowCartToast: "Added to cart!"
+    ShowCartToast --> DisplayProduct: Stay on product detail
 
     DisplayProduct --> ReturnToGrid: Tap back button
     ReturnToGrid --> [*]: finish()
@@ -227,7 +248,7 @@ stateDiagram-v2
     }
 
     SCANNING --> ParseAAMVA: Hardware scan detected
-    ParseAAMVA --> ExtractDOB: Read FTDI USB serial (115200 baud)
+    ParseAAMVA --> ExtractDOB: Read FTDI USB serial (9600 baud)
     ExtractDOB --> CalculateAge: Parse 8-digit YYYYMMDD
 
     state CalculateAge <<choice>>
@@ -252,7 +273,7 @@ stateDiagram-v2
     note right of ParseAAMVA
         AAMVA PDF417 Format:
         - @ANSI header
-        - DAA = DOB (YYYYMMDD)
+        - DBB = DOB (YYYYMMDD)
         - DBA = Expiration
         - Extract using regex
     end note
@@ -316,9 +337,9 @@ sequenceDiagram
 
     Note over ISM: User places ID on scanner<br/>Hardware sends data via USB
 
-    ISM->>ISM: Read USB serial (1024 byte buffer)
+    ISM->>ISM: Read USB serial (4096 byte buffer, 9600 baud)
     ISM->>ISM: Parse AAMVA format
-    ISM->>ISM: Extract DOB from DAA field
+    ISM->>ISM: Extract DOB from DBB field
     ISM->>ISM: Validate DOB (1900-2100)
     ISM->>ISM: Calculate age from DOB
     ISM->>ISM: Compare age >= requiredAge
@@ -856,8 +877,10 @@ gantt
 ### Hardware Configuration
 | Device | VID | PID | Protocol | Baud Rate | Driver |
 |--------|-----|-----|----------|-----------|--------|
-| E-Seek M260 ID Scanner | 0x0403 | 0x6001 | USB Serial | 115200 | FTDI |
-| Nayax Payment Reader | 0x26f1 | 0x5650 | USB Serial | 115200 | CDC-ACM |
+| E-Seek M260 ID Scanner | 0x0403 | 0x6001 | USB Serial | **9600** | FTDI |
+| Nayax VPOS Touch Payment | 0x0403 | 0x6015 | USB Serial (FTDI) | **115200** | FtdiSerialDriver |
+
+**Note:** The Nayax VPOS has two USB interfaces. The FTDI interface (0403:6015) must be used - the CDC-ACM interface (26f1:5650) does NOT work.
 
 ### Product Categories
 | Category | Product Count | Age Restricted |
@@ -877,9 +900,9 @@ gantt
 
 ## Notes
 
-1. **Hardware Currently Disabled**: The `HardwareService.initializeHardware()` has USB device detection commented out for frontend development. IdScanActivity simulates scanning without actual hardware.
+1. **Hardware Fully Integrated**: Both ID Scanner (E-Seek M260) and Nayax VPOS Touch payment reader are fully functional via USB.
 
-2. **No Payment Integration**: Current implementation shows success toasts but doesn't process actual payments via NayaxPaymentManager. The payment manager exists but isn't invoked in the purchase flow.
+2. **Payment Integration Complete**: NayaxPaymentManager uses the Marshall SDK to communicate with the Nayax VPOS Touch. The reader shows "Tap Card" and is ready for contactless payments. The `vmc_vend_t.handleMessage()` method was manually reconstructed after JADX decompilation failure.
 
 3. **No Cart Persistence**: "Add to cart" operations show success messages but don't persist to a database or shared cart state.
 
@@ -892,3 +915,11 @@ gantt
 7. **Screensaver Activation**: Only triggered from ProductGridActivity after 30s of inactivity. Other activities don't implement idle detection.
 
 8. **Back Navigation**: All activities use standard back stack behavior. No custom back handling beyond standard `finish()` calls.
+
+9. **Critical Baud Rate Fix (Jan 2026)**: ID Scanner and Nayax payment terminal now use separate baud rate constants. Previously, when Nayax integration was added, both devices incorrectly shared `SERIAL_BAUD_RATE = 115200`, causing the ID scanner to receive binary garbage instead of ASCII AAMVA text. Now fixed with `ID_SCANNER_BAUD_RATE = 9600` and `NAYAX_BAUD_RATE = 115200`.
+
+10. **Cart Checkout Flow**: CartActivity now checks for age-restricted items before payment. If the cart contains any products requiring age verification, it launches IdScanActivity with the highest required age. After successful verification, payment proceeds normally.
+
+11. **Nayax Payment Flow (Jan 2026)**: The Nayax VPOS Touch integration uses the Marshall SDK extracted from DMVI's APK. Key configuration: `reader_always_on = true` enables the card reader to show "Tap Card". The state machine flows: INIT → IDLE → READER_ENABLED → (card tap) → WAIT_VEND_REQUEST → VEND_PROCESS → WAIT_END_SESSION → IDLE.
+
+12. **USB Device Priority**: When detecting USB devices, the app prefers the FTDI interface (VID=0x0403, PID=0x6015) over the CDC-ACM interface (VID=0x26f1, PID=0x5650) for Nayax. Both interfaces appear on the same physical device, but only FTDI works with Marshall protocol.

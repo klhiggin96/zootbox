@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- E-Seek M260 ID Scanner -->
+    <!-- E-Seek M260 ID Scanner (FTDI VID 0x0403, PID 0x6001) -->
     <usb-device vendor-id="1027" product-id="24577" />
-    <!-- Nayax VPOS Touch -->
+
+    <!-- Nayax VPOS Touch - Multiple VID/PID variants -->
+    <!-- Nayax VID (0x26f1 = 9969) with various PIDs -->
     <usb-device vendor-id="9969" product-id="22096" />
+    <usb-device vendor-id="9969" product-id="8746" />
+
+    <!-- Nayax VPOS internal FTDI chip (VID 0x0403 = 1027, PID 0x6015 = 24597) -->
+    <!-- CRITICAL: This is how the VPOS actually communicates! -->
+    <usb-device vendor-id="1027" product-id="24597" />
 </resources>
 
