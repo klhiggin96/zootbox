@@ -499,7 +499,7 @@ public class vmc_vend_t extends vmc_client_t {
                 }
                 break;
 
-            case vmc_event_session_begin_e: // 2 - VPOS reports session started
+            case vmc_event_session_begin_e: // 2 - VPOS reports session started (card tapped)
                 if (m_vend_state == vmc_vend_state_reader_enabled_e) {
                     int fundsAvailable = (eventData instanceof Integer) ? (Integer) eventData : 0;
                     if (m_current_session == null) {
@@ -507,7 +507,16 @@ public class vmc_vend_t extends vmc_client_t {
                     }
                     m_current_session.funds_avail = fundsAvailable;
                     m_vend_callbacks.onSessionBegin(fundsAvailable);
-                    change_state(vmc_vend_state_wait_vend_request_e);
+
+                    // Pre-Selection mode: vend_request already sent, go directly to VEND_PROCESS
+                    // Post-Selection mode: wait for vend_request from app
+                    if (m_vmc_configuration.always_idle && m_current_session.products_list != null
+                            && m_current_session.products_list.size() > 0) {
+                        Log.d(TAG, "Pre-Selection mode: Card tapped, proceeding to vend process");
+                        change_state(vmc_vend_state_vend_process_e);
+                    } else {
+                        change_state(vmc_vend_state_wait_vend_request_e);
+                    }
                 }
                 break;
 
@@ -520,7 +529,11 @@ public class vmc_vend_t extends vmc_client_t {
                 break;
 
             case vmc_event_vend_request_e: // 4 - App requests vend
-                if (m_vend_state == vmc_vend_state_wait_vend_request_e && eventData instanceof vend_session_t) {
+                // Pre-Selection mode (always_idle=true): Allow vend_request from READER_ENABLED state
+                // Post-Selection mode: Only allow from WAIT_VEND_REQUEST state (after card tap)
+                boolean allowVendRequest = m_vend_state == vmc_vend_state_wait_vend_request_e ||
+                    (m_vmc_configuration.always_idle && m_vend_state == vmc_vend_state_reader_enabled_e);
+                if (allowVendRequest && eventData instanceof vend_session_t) {
                     vend_session_t session = (vend_session_t) eventData;
                     m_current_session = session.m10clone();
 
@@ -532,12 +545,24 @@ public class vmc_vend_t extends vmc_client_t {
                         vend_item_t item = session.products_list.get(0);
                         vendRequest(item.code, (short) item.price);
                     }
-                    change_state(vmc_vend_state_vend_process_e);
+                    // In Pre-Selection mode: Stay in READER_ENABLED to wait for session_begin (card tap)
+                    // In Post-Selection mode: Transition to VEND_PROCESS (card already tapped)
+                    if (m_vmc_configuration.always_idle && m_vend_state == vmc_vend_state_reader_enabled_e) {
+                        // Pre-Selection: Stay in state 2, wait for card tap (session_begin)
+                        // Don't change state - VPOS will send session_begin when card is tapped
+                        Log.d(TAG, "Pre-Selection mode: Waiting for card tap after vend_request");
+                    } else {
+                        // Post-Selection: Already have card, go to vend process
+                        change_state(vmc_vend_state_vend_process_e);
+                    }
                 }
                 break;
 
             case vmc_event_vend_approved_e: // 5 - VPOS approved vend
-                if (m_vend_state == vmc_vend_state_vend_process_e) {
+                // In Pre-Selection mode, vend can be approved in state 2 (READER_ENABLED)
+                // In Post-Selection mode, vend is approved in state 4 (VEND_PROCESS)
+                if (m_vend_state == vmc_vend_state_vend_process_e ||
+                    m_vend_state == vmc_vend_state_reader_enabled_e) {
                     if (m_vend_callbacks.onVendApproved(m_current_session)) {
                         // App accepted the approval
                         change_state(vmc_vend_state_wait_end_session_e);
@@ -550,12 +575,19 @@ public class vmc_vend_t extends vmc_client_t {
                 break;
 
             case vmc_event_vend_denied_e: // 6 - VPOS denied vend
-                if (m_vend_state == vmc_vend_state_vend_process_e) {
+                // In Pre-Selection mode, vend can be denied in state 2 (READER_ENABLED)
+                // In Post-Selection mode, vend is denied in state 4 (VEND_PROCESS)
+                if (m_vend_state == vmc_vend_state_vend_process_e ||
+                    m_vend_state == vmc_vend_state_reader_enabled_e) {
                     if (m_current_session != null) {
                         m_current_session.session_status = session_status_vend_denied_e;
                     }
                     m_vend_callbacks.onVendDenied(m_current_session);
-                    change_state(vmc_vend_state_wait_end_session_e);
+                    // Stay in current state or go to wait_end_session
+                    if (m_vend_state == vmc_vend_state_vend_process_e) {
+                        change_state(vmc_vend_state_wait_end_session_e);
+                    }
+                    // If in READER_ENABLED, session will end naturally
                 }
                 break;
 

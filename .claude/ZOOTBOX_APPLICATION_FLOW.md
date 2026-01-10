@@ -67,7 +67,7 @@ graph TB
         CART_Wait -->|Tap Back| CART_Return([Return to ProductGrid])
         CART_Wait -->|Tap Checkout| CART_CheckAge{Any Age Restricted?}
         CART_CheckAge -->|Yes| CART_NavID[Launch IdScanActivity<br/>Pass max age required]
-        CART_CheckAge -->|No| CART_Payment[Process Payment<br/>NayaxPaymentManager]
+        CART_CheckAge -->|No| CART_Payment[Process Payment<br/>NayaxPaymentManager<br/>Pre-Selection Mode]
         CART_ResultWait{ID Scan Result?}
         CART_ResultWait -->|RESULT_OK| CART_Success[Show Success Toast]
         CART_Success --> CART_Payment
@@ -359,8 +359,73 @@ sequenceDiagram
     ISA->>HS: unbindService()
     deactivate HS
 
-    Note over NPM: Future: Payment processing<br/>Would follow similar USB serial flow
+    Note over NPM: Nayax Payment Flow (Pre-Selection Mode)<br/>Price sent before card tap
 ```
+
+---
+
+## Nayax Payment State Machine (Pre-Selection Mode)
+
+```mermaid
+stateDiagram-v2
+    [*] --> INIT: App startup
+    INIT --> IDLE: Marshall SDK initialized
+    IDLE --> READER_ENABLED: reader_always_on = true
+
+    state READER_ENABLED {
+        [*] --> WaitingForVendRequest
+        WaitingForVendRequest --> VendRequestReceived: App sends vend_request(price)
+        note right of VendRequestReceived: Price displays on VPOS<br/>"$X.XX - Tap Card"
+    }
+
+    READER_ENABLED --> VEND_PROCESS: Card tapped (session_begin)<br/>with pending vend_request
+
+    state VEND_PROCESS {
+        [*] --> ProcessingPayment
+        ProcessingPayment --> VendApproved: vend_approved event
+        ProcessingPayment --> VendDenied: vend_denied event
+    }
+
+    VEND_PROCESS --> WAIT_END_SESSION: vend_approved
+    WAIT_END_SESSION --> IDLE: session_end
+
+    VEND_PROCESS --> READER_ENABLED: vend_denied (retry)
+
+    note right of READER_ENABLED
+        Pre-Selection Mode (always_idle = true):
+        1. App sends price FIRST
+        2. VPOS shows "$X.XX - Tap Card"
+        3. Customer taps card
+        4. Payment processes
+
+        This differs from Post-Selection:
+        1. Customer taps card FIRST
+        2. App sends price
+        3. Payment processes
+    end note
+```
+
+### Pre-Selection vs Post-Selection Flow Comparison
+
+| Aspect | Pre-Selection (ZootBox) | Post-Selection |
+|--------|------------------------|----------------|
+| **Config** | `always_idle = true` | `always_idle = false` |
+| **Sequence** | Price → Card Tap → Payment | Card Tap → Price → Payment |
+| **vend_request state** | READER_ENABLED (state 2) | WAIT_VEND_REQUEST (state 3) |
+| **Display** | Shows price immediately | Shows "Tap Card" until price sent |
+| **Use Case** | Known price before checkout | Dynamic pricing after card tap |
+
+### vmc_vend_t State Machine Reference
+
+| State | ID | Description |
+|-------|-----|-------------|
+| INIT | 0 | SDK initializing |
+| IDLE | 1 | Ready, reader disabled |
+| READER_ENABLED | 2 | Card reader active, showing "Tap Card" |
+| WAIT_VEND_REQUEST | 3 | Card tapped, waiting for price (Post-Selection only) |
+| VEND_PROCESS | 4 | Processing payment |
+| WAIT_END_SESSION | 5 | Transaction complete, waiting for cleanup |
+| DISABLED | 6 | Reader disabled |
 
 ---
 
@@ -882,6 +947,14 @@ gantt
 
 **Note:** The Nayax VPOS has two USB interfaces. The FTDI interface (0403:6015) must be used - the CDC-ACM interface (26f1:5650) does NOT work.
 
+### Marshall SDK Configuration (NayaxPaymentManager.kt)
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| `reader_always_on` | `true` | Keep card reader enabled, showing "Tap Card" |
+| `always_idle` | `true` | Enable Pre-Selection mode (app sends price before card tap) |
+| `multi_vend_support` | `false` | Single item transactions |
+| `vend_response_timeout` | `30000` | 30 second payment timeout |
+
 ### Product Categories
 | Category | Product Count | Age Restricted |
 |----------|---------------|----------------|
@@ -920,6 +993,10 @@ gantt
 
 10. **Cart Checkout Flow**: CartActivity now checks for age-restricted items before payment. If the cart contains any products requiring age verification, it launches IdScanActivity with the highest required age. After successful verification, payment proceeds normally.
 
-11. **Nayax Payment Flow (Jan 2026)**: The Nayax VPOS Touch integration uses the Marshall SDK extracted from DMVI's APK. Key configuration: `reader_always_on = true` enables the card reader to show "Tap Card". The state machine flows: INIT → IDLE → READER_ENABLED → (card tap) → WAIT_VEND_REQUEST → VEND_PROCESS → WAIT_END_SESSION → IDLE.
+11. **Nayax Payment Flow - Pre-Selection Mode with Motor Dispensing (Jan 2026)**: The Nayax VPOS Touch integration uses the Marshall SDK extracted from DMVI's APK with **Pre-Selection flow** (app sends price BEFORE card tap) and **full motor dispensing integration**. Key configuration: `reader_always_on = true` keeps the card reader enabled showing "Tap Card", and `always_idle = true` enables Pre-Selection mode. The complete end-to-end flow is: Product Selection → ID Scan → Payment Initiation (vend_request) → Card Tap (session_begin) → Payment Approval (vend_approved) → **Motor Dispensing** → Transaction Settlement. Critical bug fixes: (1) `vmc_vend_t.handleMessage()` vend_approved handler now fires callback in both state 2 (READER_ENABLED, Pre-Selection) and state 4 (VEND_PROCESS, Post-Selection); (2) `ProductDetailActivity` refactored to extract `dispenseProducts()` function, eliminating double payment initiation in "Add to Cart" flow; (3) Motors now trigger immediately after payment approval via `MotorControlManager.vendMotor()` which sends JSON-RPC commands to DMVI service on port 57482.
 
 12. **USB Device Priority**: When detecting USB devices, the app prefers the FTDI interface (VID=0x0403, PID=0x6015) over the CDC-ACM interface (VID=0x26f1, PID=0x5650) for Nayax. Both interfaces appear on the same physical device, but only FTDI works with Marshall protocol.
+
+13. **Immediate Inventory Sync (Jan 2026)**: The `InventoryRepository` now triggers `BackgroundSyncService.syncNow()` on every inventory change (`updateInventory()`, `resetAllInventory()`). This ensures the portal sees changes within seconds instead of waiting up to 1 hour. The sync uses `NetworkType.NOT_REQUIRED` constraint since it communicates with localhost. A `network_security_config.xml` was added to allow cleartext HTTP to localhost on Android 9+.
+
+14. **Backend HTTP_HOST Configuration (Jan 2026)**: The Go backend must start with `HTTP_HOST=0.0.0.0` (not `127.0.0.1`) for the portal to connect via Tailscale VPN. The backend database has exactly 10 coils (A1-J1) matching the 10 motors in the vending machine.

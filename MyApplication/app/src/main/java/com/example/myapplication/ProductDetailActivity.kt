@@ -544,7 +544,9 @@ class ProductDetailActivity : AppCompatActivity() {
      */
     private fun initiateNayaxPaymentFromSheet() {
         val data = pendingCheckout ?: return
-        val totalPrice = data.productPrice * data.quantity
+        val TAX_RATE = 0.075  // 7.5% tax
+        val subtotal = data.productPrice * data.quantity
+        val totalPrice = subtotal * (1 + TAX_RATE)  // Include tax for Nayax
 
         // Add product to cart before processing payment
         val product = Product(
@@ -581,8 +583,33 @@ class ProductDetailActivity : AppCompatActivity() {
                 }
 
                 if (paymentApproved) {
-                    // Process vend after successful payment
-                    processCheckout()
+                    // Dispense products directly - payment already approved!
+                    val coil = assignedCoil
+                    val motorManager = hardwareService?.getMotorControlManager()
+
+                    if (coil == null) {
+                        Log.e("ProductDetailActivity", "No coil assigned for product")
+                        Toast.makeText(this@ProductDetailActivity, "Product configuration error", Toast.LENGTH_LONG).show()
+                        paymentManager.confirmVend(success = false)  // Trigger refund
+                        return@launch
+                    }
+
+                    if (motorManager == null) {
+                        Log.e("ProductDetailActivity", "Motor control unavailable")
+                        Toast.makeText(this@ProductDetailActivity, "Vending system unavailable", Toast.LENGTH_LONG).show()
+                        paymentManager.confirmVend(success = false)  // Trigger refund
+                        return@launch
+                    }
+
+                    // Get transaction ID from payment result
+                    val paymentResult = paymentManager.paymentResult.value
+                    val nayaxTransactionId = paymentResult?.transactionId
+
+                    // Dispense the products
+                    dispenseProducts(coil, paymentManager, motorManager, nayaxTransactionId, data.quantity)
+
+                    // Refresh inventory display
+                    checkInventoryAndUpdateUI()
                 } else {
                     Toast.makeText(this@ProductDetailActivity, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
                 }
@@ -655,8 +682,10 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun processCheckout() {
         val coil = assignedCoil ?: return
 
-        val totalPrice = basePrice * quantity
-        Log.d("ProductDetailActivity", "Processing checkout: $quantity units from coil ${coil.id}, total: ${currencyFormatter.format(totalPrice)}")
+        val TAX_RATE = 0.075  // 7.5% tax
+        val subtotal = basePrice * quantity
+        val totalPrice = subtotal * (1 + TAX_RATE)  // Include tax for Nayax
+        Log.d("ProductDetailActivity", "Processing checkout: $quantity units from coil ${coil.id}, total: ${currencyFormatter.format(totalPrice)} (incl. tax)")
 
         // Get hardware managers
         val paymentManager = hardwareService?.getNayaxPaymentManager()
@@ -707,82 +736,8 @@ class ProductDetailActivity : AppCompatActivity() {
                     val paymentResult = paymentManager.paymentResult.value
                     val nayaxTransactionId = paymentResult?.transactionId
 
-                    // Process vend for each quantity
-                    Toast.makeText(
-                        this@ProductDetailActivity,
-                        "Payment approved! Dispensing product...",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    var allVendsSuccessful = true
-                    for (index in 0 until quantity) {
-                        Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantity from coil ${coil.id}")
-
-                        val vendSuccess = motorManager.vendMotor(coil.id)
-
-                        if (vendSuccess) {
-                            // Decrement inventory
-                            inventoryRepo.decrementInventory(coil.id)
-
-                            // Log transaction with payment data
-                            val transaction = Transaction.createWithPayment(
-                                coilId = coil.id,
-                                status = Transaction.STATUS_SUCCESS,
-                                amount = basePrice,
-                                paymentMethod = Transaction.PAYMENT_METHOD_CARD,
-                                paymentStatus = Transaction.PAYMENT_STATUS_APPROVED,
-                                nayaxTransactionId = nayaxTransactionId,
-                                productId = null  // TODO: Get from product-coil mapping
-                            )
-                            inventoryRepo.saveTransaction(transaction)
-                            Log.d("ProductDetailActivity", "Saved transaction: ${transaction.id}")
-                        } else {
-                            // Vend failed (motor jam)
-                            Log.e("ProductDetailActivity", "Motor vend FAILED for coil ${coil.id}")
-                            allVendsSuccessful = false
-
-                            // Log JAM transaction
-                            val jamTransaction = Transaction.createWithPayment(
-                                coilId = coil.id,
-                                status = Transaction.STATUS_JAM,
-                                amount = basePrice,
-                                paymentMethod = Transaction.PAYMENT_METHOD_CARD,
-                                paymentStatus = Transaction.PAYMENT_STATUS_REFUNDED,
-                                nayaxTransactionId = nayaxTransactionId,
-                                productId = null
-                            )
-                            inventoryRepo.saveTransaction(jamTransaction)
-
-                            // Create jam event for backend alerting
-                            // inventoryRepo.createJamEvent(coil.id)
-
-                            break  // Stop vending on first failure
-                        }
-                    }
-
-                    if (allVendsSuccessful) {
-                        // Confirm successful vend to Nayax (finalizes transaction)
-                        paymentManager.confirmVend(success = true)
-
-                        Toast.makeText(
-                            this@ProductDetailActivity,
-                            "Purchase successful! Thank you!",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        Log.i("ProductDetailActivity", "Checkout completed successfully")
-                    } else {
-                        // Partial failure - trigger refund
-                        paymentManager.confirmVend(success = false)
-
-                        Toast.makeText(
-                            this@ProductDetailActivity,
-                            "Vend failed. Payment will be refunded.",
-                            Toast.LENGTH_LONG
-                        ).show()
-
-                        Log.w("ProductDetailActivity", "Checkout failed - payment refunded")
-                    }
+                    // Dispense products using shared function
+                    dispenseProducts(coil, paymentManager, motorManager, nayaxTransactionId, quantity)
                 } else {
                     // Payment declined or cancelled
                     Log.w("ProductDetailActivity", "Payment DECLINED or CANCELLED")
@@ -811,6 +766,94 @@ class ProductDetailActivity : AppCompatActivity() {
                 checkInventoryAndUpdateUI()
             }
         }
+    }
+
+    /**
+     * Dispense products after payment approval
+     * Handles motor vending, inventory updates, transaction logging, and vend confirmation
+     */
+    private suspend fun dispenseProducts(
+        coil: Coil,
+        paymentManager: NayaxPaymentManager,
+        motorManager: MotorControlManager,
+        nayaxTransactionId: String?,
+        quantityToVend: Int
+    ): Boolean {
+        Log.i("ProductDetailActivity", "Dispensing $quantityToVend items from coil ${coil.id}")
+
+        Toast.makeText(
+            this@ProductDetailActivity,
+            "Payment approved! Dispensing product...",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        var allVendsSuccessful = true
+        for (index in 0 until quantityToVend) {
+            Log.d("ProductDetailActivity", "Vending item ${index + 1}/$quantityToVend from coil ${coil.id}")
+
+            val vendSuccess = motorManager.vendMotor(coil.id)
+
+            if (vendSuccess) {
+                // Decrement inventory
+                inventoryRepo.decrementInventory(coil.id)
+
+                // Log transaction with payment data
+                val transaction = Transaction.createWithPayment(
+                    coilId = coil.id,
+                    status = Transaction.STATUS_SUCCESS,
+                    amount = basePrice,
+                    paymentMethod = Transaction.PAYMENT_METHOD_CARD,
+                    paymentStatus = Transaction.PAYMENT_STATUS_APPROVED,
+                    nayaxTransactionId = nayaxTransactionId,
+                    productId = null
+                )
+                inventoryRepo.saveTransaction(transaction)
+                Log.d("ProductDetailActivity", "Saved transaction: ${transaction.id}")
+            } else {
+                // Vend failed (motor jam)
+                Log.e("ProductDetailActivity", "Motor vend FAILED for coil ${coil.id}")
+                allVendsSuccessful = false
+
+                // Log JAM transaction
+                val jamTransaction = Transaction.createWithPayment(
+                    coilId = coil.id,
+                    status = Transaction.STATUS_JAM,
+                    amount = basePrice,
+                    paymentMethod = Transaction.PAYMENT_METHOD_CARD,
+                    paymentStatus = Transaction.PAYMENT_STATUS_REFUNDED,
+                    nayaxTransactionId = nayaxTransactionId,
+                    productId = null
+                )
+                inventoryRepo.saveTransaction(jamTransaction)
+                break  // Stop vending on first failure
+            }
+        }
+
+        if (allVendsSuccessful) {
+            // Confirm successful vend to Nayax (finalizes transaction)
+            paymentManager.confirmVend(success = true)
+
+            Toast.makeText(
+                this@ProductDetailActivity,
+                "Purchase successful! Thank you!",
+                Toast.LENGTH_LONG
+            ).show()
+
+            Log.i("ProductDetailActivity", "Dispense completed successfully")
+        } else {
+            // Partial failure - trigger refund
+            paymentManager.confirmVend(success = false)
+
+            Toast.makeText(
+                this@ProductDetailActivity,
+                "Vend failed. Payment will be refunded.",
+                Toast.LENGTH_LONG
+            ).show()
+
+            Log.w("ProductDetailActivity", "Dispense failed - payment refunded")
+        }
+
+        return allVendsSuccessful
     }
 
     /**
