@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.myapplication.database.InventoryRepository
 import kotlin.math.sin
 
 class ProductGridActivity : AppCompatActivity() {
@@ -83,7 +84,7 @@ class ProductGridActivity : AppCompatActivity() {
         val allProducts = listOf(
             Product("01", "ZOOT VAPE X", "1", "1", R.drawable.zyn, price = 29.99, ageRestriction = 21, videoFileName = "zoot_vape_x.mp4", category = "VAPES"),
             Product("02", "NIGHT OWL CAM", "1", "2", R.drawable.zyn, price = 15.99, videoFileName = "night_owl_cam.mp4", category = "ZOOTBOX LEGENDARY LOOT"),
-            Product("03", "ZYN CITRUS", "1", "3", R.drawable.img_zyn_citrus, backgroundRes = R.drawable.bg_zyn_citrus_gradient, price = 8.99, ageRestriction = 21, scaleX = 0.95f, scaleY = 0.95f, videoFileName = "zyn_citrus.mp4", category = "ZyNS"),
+            Product("03", "ZYN CITRUS", "1", "3", R.drawable.img_zyn_citrus, backgroundRes = R.drawable.bg_zyn_citrus_gradient, price = 1.00, ageRestriction = 21, scaleX = 0.95f, scaleY = 0.95f, videoFileName = "zyn_citrus.mp4", category = "ZyNS"),
             Product("04", "RED BULL 12OZ", "1", "4", R.drawable.zyn, price = 4.99, videoFileName = "red_bull.mp4", category = "ZOOTBOX LEGENDARY LOOT"),
             Product("05", "LIGHTER GOLD", "1", "5", R.drawable.zyn, price = 2.99, ageRestriction = 18, videoFileName = "lighter_gold.mp4", category = "CIGERATES"),
             Product("06", "ROLLING PAPERS", "1", "6", R.drawable.zyn, price = 3.99, ageRestriction = 18, videoFileName = "rolling_papers.mp4", category = "CIGERATES"),
@@ -100,7 +101,10 @@ class ProductGridActivity : AppCompatActivity() {
             allProducts
         }
 
-        val adapter = ProductAdapter(filteredProducts) { product ->
+        // Get inventory repository for adapter
+        val inventoryRepo = InventoryRepository.getInstance(this)
+
+        val adapter = ProductAdapter(filteredProducts, inventoryRepo) { product ->
             // Launch Product Detail Activity
             val intent = Intent(this, ProductDetailActivity::class.java)
             intent.putExtra("name", product.name)

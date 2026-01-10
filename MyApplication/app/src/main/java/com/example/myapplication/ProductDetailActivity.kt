@@ -88,7 +88,15 @@ class ProductDetailActivity : AppCompatActivity() {
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
 
     private lateinit var idScanLauncher: ActivityResultLauncher<Intent>
-    private var isAddToCartFlow = false  // Track whether we're in "Add to Cart" or "Buy Now" flow
+
+    // Pending checkout data for two-phase flow (PAY NOW -> ID Scan -> TAP CARD TO PAY)
+    private data class PendingCheckout(
+        val productName: String,
+        val productCategory: String,
+        val productPrice: Double,
+        val quantity: Int
+    )
+    private var pendingCheckout: PendingCheckout? = null
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 100
@@ -132,13 +140,11 @@ class ProductDetailActivity : AppCompatActivity() {
         idScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 Toast.makeText(this, "Verification Successful!", Toast.LENGTH_SHORT).show()
-                if (!isAddToCartFlow) {
-                    // Proceed to checkout for "Buy Now" flow only
-                    processCheckout()
-                }
-                // For Add to Cart flow, just stay on product detail page after success
+                // Show bottom sheet in PAYMENT_READY state (Phase 2)
+                showCheckoutBottomSheet(CheckoutState.PAYMENT_READY)
             } else {
                 Toast.makeText(this, "Verification Failed or Cancelled.", Toast.LENGTH_SHORT).show()
+                pendingCheckout = null
             }
         }
 
@@ -398,16 +404,10 @@ class ProductDetailActivity : AppCompatActivity() {
 
     /**
      * Determine which coil this product uses
-     * TODO: Replace with actual product-to-coil mapping from database
+     * Uses ProductCoilMapper for centralized mapping logic
      */
     private fun determineCoilForProduct(productName: String): Coil? {
-        // Simplified mapping: Hash product name to coil (A1-J1)
-        val coilIds = listOf("A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1", "J1")
-        val index = (productName.hashCode() and 0x7FFFFFFF) % coilIds.size
-        val coilId = coilIds[index]
-
-        Log.d("ProductDetailActivity", "Product '$productName' mapped to coil $coilId")
-        return inventoryRepo.getCoil(coilId)
+        return ProductCoilMapper.getCoilForProduct(productName, inventoryRepo)
     }
 
     /**
@@ -447,7 +447,7 @@ class ProductDetailActivity : AppCompatActivity() {
     /**
      * Handle "Add to Cart" button click
      *
-     * Adds product to cart and shows options to continue shopping or view cart
+     * Shows checkout bottom sheet with product summary and price breakdown
      */
     private fun handleAddToCart() {
         // Check inventory before proceeding
@@ -472,41 +472,126 @@ class ProductDetailActivity : AppCompatActivity() {
             return
         }
 
-        // Create product from current data
+        // Store pending checkout data for two-phase flow
+        val productCategory = intent.getStringExtra("category") ?: "PREMIUM POUCHES"
+        pendingCheckout = PendingCheckout(
+            productName = productName,
+            productCategory = productCategory,
+            productPrice = basePrice,
+            quantity = quantity
+        )
+
+        // Show PAY NOW bottom sheet (Phase 1)
+        showCheckoutBottomSheet(CheckoutState.PAY_NOW)
+    }
+
+    /**
+     * Show checkout bottom sheet in the specified state
+     */
+    private fun showCheckoutBottomSheet(state: CheckoutState) {
+        val data = pendingCheckout ?: return
+
+        val bottomSheet = CheckoutBottomSheetFragment.newInstance(
+            productName = data.productName,
+            productCategory = data.productCategory,
+            productPrice = data.productPrice,
+            quantity = data.quantity,
+            initialState = state
+        )
+
+        when (state) {
+            CheckoutState.PAY_NOW -> {
+                // PAY NOW clicked -> dismiss sheet and launch ID scan
+                bottomSheet.setOnPayNowClicked {
+                    bottomSheet.dismiss()
+                    launchIdScan()
+                }
+            }
+            CheckoutState.PAYMENT_READY -> {
+                // Payment cancelled -> clear pending data
+                bottomSheet.setOnPaymentCancelled {
+                    pendingCheckout = null
+                }
+                // Fallback if user somehow triggers complete
+                bottomSheet.setOnCheckoutComplete {
+                    initiateNayaxPaymentFromSheet()
+                }
+            }
+        }
+
+        bottomSheet.show(supportFragmentManager, "CheckoutBottomSheet")
+
+        // If PAYMENT_READY state, initiate payment after showing the sheet
+        if (state == CheckoutState.PAYMENT_READY) {
+            initiateNayaxPaymentFromSheet()
+        }
+    }
+
+    /**
+     * Launch ID scan activity
+     */
+    private fun launchIdScan() {
+        val checkAge = if (ageRestriction > 0) ageRestriction else 21  // Force age check for demo
+        Log.d("ProductDetailActivity", "Launching ID Scan, required age: $checkAge")
+        val idScanIntent = Intent(this, IdScanActivity::class.java)
+        idScanIntent.putExtra("requiredAge", checkAge)
+        idScanLauncher.launch(idScanIntent)
+    }
+
+    /**
+     * Initiate Nayax payment after ID verification
+     * This sends the price to Nayax VPOS (Pre-Selection mode)
+     */
+    private fun initiateNayaxPaymentFromSheet() {
+        val data = pendingCheckout ?: return
+        val totalPrice = data.productPrice * data.quantity
+
+        // Add product to cart before processing payment
         val product = Product(
-            id = "PRD_TEMP_${productName.hashCode()}",  // TODO: Use real product ID from database
-            name = productName,
-            category = intent.getStringExtra("category") ?: "Unknown",
-            price = basePrice,
+            id = "PRD_TEMP_${data.productName.hashCode()}",
+            name = data.productName,
+            category = data.productCategory,
+            price = data.productPrice,
             ageRestriction = ageRestriction,
             imageUrl = null,
             videoFilename = videoFileName,
             isDigital = false,
             active = true
         )
+        cartManager.addItem(product, data.quantity)
 
-        // Add to cart
-        val result = cartManager.addItem(product, quantity)
+        lifecycleScope.launch {
+            try {
+                val paymentManager = hardwareService?.getNayaxPaymentManager()
 
-        if (result.isSuccess) {
-            Toast.makeText(
-                this,
-                "Added ${quantity}x ${productName} to cart!",
-                Toast.LENGTH_SHORT
-            ).show()
+                if (paymentManager == null) {
+                    Toast.makeText(this@ProductDetailActivity, "Payment system unavailable", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
 
-            // Launch ID scan if age-restricted
-            if (ageRestriction > 0) {
-                // Launch ID verification
-                isAddToCartFlow = true
-                val intent = Intent(this, IdScanActivity::class.java)
-                intent.putExtra("requiredAge", ageRestriction)
-                idScanLauncher.launch(intent)
+                Log.i("ProductDetailActivity", "Initiating Nayax payment: ${currencyFormatter.format(totalPrice)}")
+
+                // This sends price to Nayax VPOS (Pre-Selection mode)
+                // The VPOS will display the price and wait for card tap
+                val paymentApproved = paymentManager.initiatePayment(totalPrice, data.quantity)
+
+                // Dismiss the bottom sheet
+                supportFragmentManager.findFragmentByTag("CheckoutBottomSheet")?.let {
+                    (it as? CheckoutBottomSheetFragment)?.dismiss()
+                }
+
+                if (paymentApproved) {
+                    // Process vend after successful payment
+                    processCheckout()
+                } else {
+                    Toast.makeText(this@ProductDetailActivity, "Payment failed or cancelled", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Log.e("ProductDetailActivity", "Payment error", e)
+                Toast.makeText(this@ProductDetailActivity, "Payment error: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                pendingCheckout = null
             }
-            // No navigation - stay on product detail page
-        } else {
-            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to add to cart"
-            Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -545,8 +630,7 @@ class ProductDetailActivity : AppCompatActivity() {
 
         if (checkAge > 0) {
             Log.d("ProductDetailActivity", "Launching ID Scan")
-            // Launch ID Verification (Buy Now flow - goes to checkout after verification)
-            isAddToCartFlow = false
+            // Launch ID Verification - goes to checkout after verification
             val intent = Intent(this, IdScanActivity::class.java)
             intent.putExtra("requiredAge", checkAge)
             idScanLauncher.launch(intent)
@@ -582,6 +666,13 @@ class ProductDetailActivity : AppCompatActivity() {
         if (paymentManager == null) {
             Log.w("ProductDetailActivity", "Payment manager not available - using free vend mode")
             processFreeVend(coil)
+            return
+        }
+
+        // Verify Nayax is ready before proceeding
+        if (paymentManager.isReady.value != true) {
+            Log.w("ProductDetailActivity", "Nayax not ready, current state: ${paymentManager.paymentState.value}")
+            Toast.makeText(this, "Payment system initializing, please wait...", Toast.LENGTH_SHORT).show()
             return
         }
 

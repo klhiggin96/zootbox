@@ -1,6 +1,7 @@
 package com.example.myapplication.cart
 
 import android.util.Log
+import com.example.myapplication.ProductCoilMapper
 import com.example.myapplication.database.InventoryRepository
 import com.example.myapplication.database.models.Coil
 import com.example.myapplication.database.models.Product
@@ -309,16 +310,10 @@ class CartManager(
 
     /**
      * Find assigned coil for product
-     *
-     * TODO: Replace with actual product-coil mapping from database
-     * Currently uses same hash-based mapping as ProductDetailActivity
+     * Uses ProductCoilMapper for centralized mapping logic
      */
     private fun findCoilForProduct(product: Product): Coil? {
-        val coilIds = listOf("A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1", "J1")
-        val index = (product.name.hashCode() and 0x7FFFFFFF) % coilIds.size
-        val coilId = coilIds[index]
-
-        return inventoryRepo.getCoil(coilId)
+        return ProductCoilMapper.getCoilForProduct(product.name, inventoryRepo)
     }
 
     /**
