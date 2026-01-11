@@ -10,6 +10,7 @@ import com.bitmick.marshall.models.vmc_configuration
 import com.bitmick.marshall.vmc.vmc_framework
 import com.bitmick.marshall.vmc.vmc_link
 import com.bitmick.marshall.vmc.vmc_vend_t
+import kotlin.math.roundToInt
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,17 @@ import kotlinx.coroutines.flow.StateFlow
  * The SDK handles the complex protocol communication, CRC calculations,
  * and state machine management for Nayax payment processing.
  *
+ * FLOW TYPE: Pre-Selection
+ *   1. User selects product in app UI
+ *   2. App calls initiatePayment(amount) -> sends vend_request()
+ *   3. VPOS screen shows price and "Please Present Card"
+ *   4. User taps card
+ *   5. Payment authorization -> onVendApproved() callback
+ *   6. Product dispensed -> confirmVend(success)
+ *   7. Settlement -> onSettlement(success)
+ *
  * Protocol: Marshall Protocol (Binary, 115200 bps, 8N1)
- * Hardware: Nayax VPOS Touch connected via USB CDC-ACM
+ * Hardware: Nayax VPOS Touch connected via USB FTDI interface
  */
 
 enum class PaymentState {
@@ -121,15 +131,21 @@ class NayaxPaymentManager(
                     serial = "1434324619381374"
                     sw_ver = "1.0.0.0"
 
+                    // Machine type - retail vending machine
+                    machine_type = vmc_configuration.machine_type_type_retail
+
                     // Feature flags - exact DMVI settings
                     mifare_approved_by_vmc_support = false
                     mag_card_approved_by_vmc_support = false
-                    multi_vend_support = true
+                    multi_vend_support = false  // DISABLED: Use standard MDB vendRequest instead of Extended MDB to avoid Auth Status -1
                     multi_session_support = false
                     price_not_final_support = false
                     reader_always_on = true  // Keep reader enabled to show "Tap Card" instead of "Cash Only"
-                    always_idle = false
+                    always_idle = true  // Enable Pre-Selection flow (app sends price before card tap)
                     vend_denied_policy = 0
+
+                    // Note: This SDK version doesn't have explicit_vend_success field
+                    // The SDK handles vend confirmation via session_close() call in confirmVend()
 
                     // Debug settings
                     dump_packets_level = 2
@@ -173,11 +189,23 @@ class NayaxPaymentManager(
         config?.let {
             Log.d(TAG, "VPOS Serial: ${String(it.vpos_serial ?: byteArrayOf())}")
             Log.d(TAG, "Protocol Version: ${it.prot_ver_major}.${it.prot_ver_minor}")
+            // CRITICAL: Check decimal place configuration (0 = $108.00, 2 = $1.08)
+            Log.e(TAG, "CONFIGURATION CHECK: Decimal Places = ${it.decimal_place}")
+            if (it.decimal_place.toInt() == 0) {
+                Log.e(TAG, "WARNING: Decimal place is 0! Sending 108 will charge $108.00, not $1.08")
+            }
         }
 
         scope.launch {
+            // NOTE: Do NOT call session_start(0) here!
+            // The VPOS interprets session_start(0) as an invalid payment request,
+            // which causes it to enter an error state and stop responding to keep-alives.
+            // DMVI's reference implementation simply sets ready state without session manipulation.
+
+            Log.i(TAG, "onReady() called - setting ready state")
             _isReady.value = true
             _paymentState.value = PaymentState.READY
+            Log.i(TAG, "Ready to accept payments!")
         }
     }
 
@@ -197,9 +225,24 @@ class NayaxPaymentManager(
     // ========== vmc_vend_t.vend_callbacks_t callbacks ==========
 
     override fun onReady(previousSession: vmc_vend_t.vend_session_t?) {
-        Log.d(TAG, "Vend module ready")
+        Log.d(TAG, "Vend module ready (session ended or reset)")
         if (previousSession != null) {
             Log.d(TAG, "Previous session status: ${previousSession.session_status}")
+        }
+
+        // CRITICAL: Handle user cancellation from VPOS (e.g., user pressed Cancel button)
+        // If paymentContinuation is still active, it means the session ended without
+        // approval/denial - this is a cancellation. Resume with false to unblock UI.
+        scope.launch {
+            if (paymentContinuation != null) {
+                Log.w(TAG, "Session ended while payment pending - user cancelled or timeout")
+                _paymentState.value = PaymentState.CANCELLED
+                _paymentResult.value = PaymentResult(false, error = "Payment cancelled")
+                paymentContinuation?.resume(false) {}
+                paymentContinuation = null
+            }
+            // Reset to ready state
+            _paymentState.value = PaymentState.READY
         }
     }
 
@@ -236,11 +279,38 @@ class NayaxPaymentManager(
     override fun onVendDenied(session: vmc_vend_t.vend_session_t?) {
         Log.w(TAG, "Payment DECLINED")
 
+        // --- DEBUGGING: Extract denial reason codes ---
+        var denialReason = "Payment declined"
+        if (session != null) {
+            // 1. Check the high-level session status (Expected: 4 for Denied)
+            Log.e(TAG, "Session Status Code: ${session.session_status}")
+
+            // 2. Check the authorization status from the VMC/Gateway
+            if (session.data != null) {
+                val authStatus = session.data.vmc_auth_status
+                val authReason = when (authStatus) {
+                    0 -> "Approved (Unexpected in onVendDenied)"
+                    1 -> "Declined by Acquirer/Bank"
+                    else -> "Unknown Auth Status: $authStatus"
+                }
+                Log.e(TAG, "VMC Auth Status: $authStatus ($authReason)")
+                denialReason = authReason
+
+                // 3. Log card details to ensure the card was actually read
+                Log.e(TAG, "Card Type: ${session.data.card_type}")
+                Log.e(TAG, "Last 4: ${session.data.cc_last_4_digits}")
+            } else {
+                Log.e(TAG, "Session Data is NULL (Denial happened before auth request?)")
+                denialReason = "Denied before authorization"
+            }
+        }
+        // --- END DEBUGGING ---
+
         scope.launch {
             _paymentState.value = PaymentState.DECLINED
             _paymentResult.value = PaymentResult(
                 success = false,
-                error = "Payment declined"
+                error = denialReason
             )
 
             // Resume the waiting payment coroutine
@@ -259,7 +329,21 @@ class NayaxPaymentManager(
     }
 
     override fun onSettlement(success: Boolean) {
-        Log.d(TAG, "Settlement ${if (success) "completed" else "failed"}")
+        if (success) {
+            Log.i(TAG, "Settlement completed successfully - payment captured")
+        } else {
+            Log.e(TAG, "Settlement FAILED - payment may not have been captured!")
+            // Update payment result to reflect settlement failure
+            // The product may have been dispensed but money not collected
+            scope.launch {
+                val currentResult = _paymentResult.value
+                if (currentResult != null && currentResult.success) {
+                    _paymentResult.value = currentResult.copy(
+                        error = "Settlement failed - payment may not have been captured"
+                    )
+                }
+            }
+        }
     }
 
     override fun onStatus(status: Int) {
@@ -300,26 +384,27 @@ class NayaxPaymentManager(
                 }
 
                 val vend = framework?.vend
-                if (vend == null || !vend.is_ready) {
-                    Log.e(TAG, "Vend module not ready")
+                if (vend == null) {
+                    Log.e(TAG, "Vend module is null")
                     return@withContext false
                 }
 
+                // Note: vend.is_ready is false during active sessions, so we don't check it here
+                // The link being ready (_isReady.value) is sufficient to start a payment
                 Log.i(TAG, "Initiating payment: $$amount (item #$itemNumber)")
 
                 // Reset previous result
                 _paymentResult.value = null
                 _paymentState.value = PaymentState.INITIALIZING
 
-                // Store pending vend info
-                pendingAmountCents = (amount * 100).toInt()
+                // Store pending vend info (round to match displayed price)
+                pendingAmountCents = (amount * 100).roundToInt()
                 pendingItemNumber = itemNumber
 
-                // Start a credit session
-                vend.session_start(vmc_vend_t.session_type_credit_e)
-
-                // Wait for session to begin, then send vend request
-                delay(500) // Give the SDK time to enable the reader
+                // With reader_always_on = true and always_idle = true, the SDK manages session lifecycle.
+                // The vend_request() call initiates the transaction in Pre-Selection mode.
+                // Wait briefly for state machine to be ready
+                delay(200)
 
                 // Create vend session
                 val vendSession = vmc_vend_t.vend_session_t(
