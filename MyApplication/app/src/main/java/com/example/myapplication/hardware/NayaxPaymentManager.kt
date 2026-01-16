@@ -152,8 +152,12 @@ class NayaxPaymentManager(
                     debug = true
                 }
 
-                // Create and configure the framework
-                // DMVI pattern: use getInstance() for singleton, call link.start() directly
+                // CRITICAL: Reset the singleton to ensure fresh state with new configuration
+                // This fixes the "CASH ONLY" issue on app restart where the old singleton
+                // had stale reader_always_on=false cached in vmc_vend_t
+                vmc_framework.reset()
+
+                // Create and configure the framework with fresh state
                 framework = vmc_framework.getInstance().apply {
                     link.set_serial_port(androidUsbPort)
                         .set_lowlevel(usbBridge)
@@ -519,8 +523,8 @@ class NayaxPaymentManager(
                 paymentContinuation?.cancel()
                 paymentContinuation = null
 
-                // Stop Marshall SDK
-                framework?.stop()
+                // Stop Marshall SDK and reset singleton for clean restart
+                vmc_framework.reset()
                 framework = null
 
                 // Close USB bridge

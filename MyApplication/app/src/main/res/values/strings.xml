@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">My Application</string>
+
+    <!-- Loading screen messages -->
+    <string name="loading_starting">Starting ZootBox…</string>
+    <string name="loading_connecting_payment">Connecting to payment system…</string>
+    <string name="loading_connecting_scanner">Connecting to ID scanner…</string>
+    <string name="loading_ready">Ready!</string>
+    <string name="loading_error">Hardware error - please restart</string>
+    <string name="loading_timeout">Payment system unavailable\nTouch to continue</string>
 </resources>

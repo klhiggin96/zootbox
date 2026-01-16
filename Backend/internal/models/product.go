@@ -9,8 +9,8 @@ type Product struct {
 	Category       string    `json:"category" db:"category"`
 	Price          float64   `json:"price" db:"price"`
 	AgeRestriction int       `json:"age_restriction" db:"age_restriction"`
-	ImageURL       string    `json:"image_url,omitempty" db:"image_url"`
-	VideoFilename  string    `json:"video_filename,omitempty" db:"video_filename"`
+	ImageURL       *string   `json:"image_url,omitempty" db:"image_url"`
+	VideoFilename  *string   `json:"video_filename,omitempty" db:"video_filename"`
 	IsDigital      bool      `json:"is_digital" db:"is_digital"`
 	Active         bool      `json:"active" db:"active"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`

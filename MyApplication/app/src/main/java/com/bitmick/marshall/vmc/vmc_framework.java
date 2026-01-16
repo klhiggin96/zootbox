@@ -38,6 +38,23 @@ public class vmc_framework {
         return m_instance;
     }
 
+    /**
+     * Reset the singleton instance to allow fresh initialization.
+     * Call this before getInstance() when restarting the payment manager
+     * to ensure clean state with updated configuration.
+     */
+    public static void reset() {
+        if (m_instance != null) {
+            Log.d(TAG, "Resetting vmc_framework singleton");
+            try {
+                m_instance.stop();
+            } catch (Exception e) {
+                Log.e(TAG, "Error stopping framework during reset: " + e.getMessage());
+            }
+            m_instance = null;
+        }
+    }
+
     public final void start() {
         this.link.start();
     }

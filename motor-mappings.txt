@@ -20,35 +20,34 @@ Commands Reference:
 -------------------
 
 Motor 1 (Row 1):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"1\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"1\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 2 (Row 2):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"2\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"2\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 3 (Row 3):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"3\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"3\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 4 (Row 4):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"4\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"4\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 5 (Row 5):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"5\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"5\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 6 (Row 6):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"6\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"6\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 7 (Row 7):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"7\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"7\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 8 (Row 8):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"8\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"8\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 9 (Row 9):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"9\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
+adb shell "echo '{\"col\":\"9\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 Motor 10 (Row 10):
-adb shell "am stopservice com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 3; am start-foreground-service com.digitalmediavending.hardware/.wallcoilmachine.WallCoilMachineService; sleep 5; echo '{\"col\":\"10\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
-
+adb shell "echo '{\"col\":\"10\",\"method\":\"requestProductVend\",\"row\":\"1\",\"jsonrpc\":\"2.0\"}' | nc ::1 57482"
 
 JSON-RPC Command Format:
 ------------------------

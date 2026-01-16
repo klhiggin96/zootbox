@@ -30,18 +30,14 @@
     
     
     <!-- ================= CONTENT ================= -->
-    <TextView
+    <ImageView
         android:id="@+id/title_zootbox"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="ZOOTBOX"
-        android:fontFamily="@font/archivo_black"
-        android:textColor="@color/black"
-        android:textSize="90sp"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:letterSpacing="0.02"
-        android:layout_marginTop="20dp"
+        android:adjustViewBounds="true"
+        android:src="@drawable/zootbox_title_text"
+        android:scaleType="fitXY"
+        android:layout_marginTop="8dp"
         android:elevation="10dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"

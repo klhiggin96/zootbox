@@ -163,13 +163,26 @@ private fun startBackend()
 **Configuration** (via environment variables):
 ```bash
 DB_PATH=/data/data/com.termux/files/home/zootbox/data/inventory.db
-HTTP_HOST=0.0.0.0  # CRITICAL: Must be 0.0.0.0 for Tailscale access
+HTTP_HOST=0.0.0.0  # ⚠️ CRITICAL: Must be 0.0.0.0 for Tailscale access
 HTTP_PORT=8080
 ```
 
+**⚠️ CRITICAL: HTTP_HOST Configuration**
+- `HTTP_HOST=0.0.0.0` - Backend accepts connections from ALL interfaces (required for portal)
+- `HTTP_HOST=127.0.0.1` - Backend only accepts localhost connections (portal will fail)
+
+If the portal shows "Connection Refused", verify the backend started with `HTTP_HOST=0.0.0.0`.
+
+**Start Command**:
+```bash
+cd /data/data/com.termux/files/home/zootbox
+DB_PATH=/data/data/com.termux/files/home/zootbox/data/inventory.db HTTP_HOST=0.0.0.0 nohup ./backend > backend.log 2>&1 &
+```
+
 **Listens On**:
-- `localhost:8080` - For MyApplication (local vending)
-- `0.0.0.0:8080` - For Tailscale (remote portal)
+- `0.0.0.0:8080` - All interfaces (localhost + Tailscale)
+
+**Database**: 10 coils (A1-J1), matching the 10 motors in the vending machine
 
 ### 5. Tailscale VPN
 
@@ -916,7 +929,8 @@ cp C:/dev/MyApplication/app/build/outputs/apk/debug/app-debug.apk C:/dev/backups
 
 | Date | Version | Changes |
 |------|---------|---------|
-| 2025-12-30 | 2.0 | **PRODUCTION READY**: Configured Tailscale with Always-on VPN for fully automatic headless operation. Screen lock disabled, battery optimization disabled. MyApplication launches immediately on boot. Total boot time reduced to ~51 seconds. |
+| 2026-01-10 | 2.1 | **SYNC VERIFIED**: End-to-end inventory sync working. HTTP_HOST=0.0.0.0 required for portal. Backend DB fixed to 10 coils (A1-J1). |
+| 2025-12-30 | 2.0 | **PRODUCTION READY**: Tailscale Always-on VPN for headless operation. Boot time ~51 seconds. |
 | 2025-12-28 | 1.0 | Initial documentation - Full boot sequence working |
 
 ---

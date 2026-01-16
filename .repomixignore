@@ -1,0 +1,44 @@
+# Repomix Ignore File
+
+# Large binary/generated folders
+node_modules/
+dmvi_decompiled/
+dmvi_java/
+jadx14/
+.git/
+.gradle/
+.idea/
+build/
+app/build/
+
+# Binary files
+*.apk
+*.exe
+*.tar.gz
+*.zip
+*.so
+*.dll
+*.jnilib
+*.dex
+*.arsc
+*.png
+*.webp
+*.jpg
+*.jpeg
+*.gif
+
+# Backup files
+*.bak
+*.bak2
+*.backup
+
+# Exclude portal node_modules specifically
+portal/node_modules/
+
+# Exclude large logs or temp files
+*.log
+nul
+info
+screen.png
+DMVI_Data_20251120_150303/
+

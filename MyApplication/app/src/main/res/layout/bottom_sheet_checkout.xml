@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_checkout_sheet"
+    android:paddingBottom="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="48dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_drag_handle"/>
+
+    <!-- Header Row: CHECKOUT + Close Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="20dp">
+
+        <TextView
+            android:id="@+id/text_checkout_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="PAY NOW"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:fontFamily="@font/space_grotesk"
+            android:letterSpacing="-0.02"/>
+
+        <ImageButton
+            android:id="@+id/btn_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_close"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:padding="12dp"
+            android:contentDescription="Close"
+            app:tint="@color/text_muted"/>
+    </RelativeLayout>
+
+    <!-- Pay Now Container (Visible in PAY_NOW state) -->
+    <LinearLayout
+        android:id="@+id/pay_now_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+    <!-- Product Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="24dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_checkout_product_card"
+        android:padding="16dp">
+
+        <!-- Product Thumbnail -->
+        <FrameLayout
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/bg_checkout_thumbnail">
+
+            <!-- Product Icon Placeholder (circle with line) -->
+            <View
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:background="@drawable/ic_product_icon_circle"/>
+        </FrameLayout>
+
+        <!-- Product Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+
+            <TextView
+                android:id="@+id/text_product_category"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PREMIUM POUCHES"
+                android:textSize="10sp"
+                android:textColor="@color/text_muted"
+                android:fontFamily="@font/inter"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/text_product_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SPEARMINT 6MG"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/archivo_black"
+                android:layout_marginBottom="8dp"
+                tools:text="SPEARMINT 6MG"/>
+
+            <TextView
+                android:id="@+id/text_product_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$24.99"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/checkout_green"
+                android:fontFamily="@font/space_grotesk"
+                tools:text="$24.99"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Price Breakdown Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:orientation="vertical">
+
+        <!-- Subtotal Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="SUBTOTAL"
+                android:textSize="12sp"
+                android:textColor="@color/text_muted"
+                android:fontFamily="@font/inter"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true"/>
+
+            <TextView
+                android:id="@+id/text_subtotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$24.99"
+                android:textSize="14sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/inter"
+                tools:text="$24.99"/>
+        </LinearLayout>
+
+        <!-- Tax Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TAX"
+                android:textSize="12sp"
+                android:textColor="@color/text_muted"
+                android:fontFamily="@font/inter"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true"/>
+
+            <TextView
+                android:id="@+id/text_tax"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$2.12"
+                android:textSize="14sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/inter"
+                tools:text="$2.12"/>
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/checkout_divider"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Total Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TOTAL"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/space_grotesk"
+                android:letterSpacing="-0.02"/>
+
+            <TextView
+                android:id="@+id/text_total"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="$27.11"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:fontFamily="@font/space_grotesk"
+                android:letterSpacing="-0.02"
+                tools:text="$27.11"/>
+        </LinearLayout>
+
+        <!-- Confirm Purchase Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btn_complete_purchase"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="16dp"
+            android:text="CONFIRM PURCHASE"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:fontFamily="@font/space_grotesk"
+            android:letterSpacing="0.05"
+            android:textAllCaps="true"
+            android:background="@drawable/bg_checkout_button"
+            app:backgroundTint="@null"/>
+
+    </LinearLayout>
+    </LinearLayout>
+    <!-- End Pay Now Container -->
+
+    <!-- Payment State Container (Initially GONE) -->
+    <LinearLayout
+        android:id="@+id/payment_state_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone">
+
+        <!-- Card Icon -->
+        <ImageView
+            android:id="@+id/icon_contactless"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_contactless_pay"
+            android:layout_marginBottom="16dp"
+            app:tint="@color/checkout_green"/>
+
+        <!-- Instruction Text -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PRESENT YOUR CARD ON THE PAYMENT TERMINAL"
+            android:textSize="12sp"
+            android:textColor="@color/text_muted"
+            android:fontFamily="@font/inter"
+            android:textAlignment="center"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- Cancel Button -->
+        <Button
+            android:id="@+id/btn_cancel_payment"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="CANCEL"
+            android:textSize="14sp"
+            android:textColor="@color/text_muted"
+            android:fontFamily="@font/space_grotesk"
+            android:background="@drawable/bg_cancel_button"/>
+    </LinearLayout>
+
+    <!-- Terms Disclaimer -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="40dp"
+        android:text="BY CONFIRMING, YOU AGREE TO OUR TERMS OF SERVICE AND AGE VERIFICATION POLICY."
+        android:textSize="10sp"
+        android:textColor="@color/text_muted"
+        android:fontFamily="@font/inter"
+        android:textAlignment="center"
+        android:letterSpacing="0.05"
+        android:lineSpacingExtra="2dp"
+        android:textAllCaps="true"/>
+
+</LinearLayout>

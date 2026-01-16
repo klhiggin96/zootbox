@@ -28,10 +28,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class HardwareService : Service() {
     private val binder = LocalBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Hardware initialization status for loading screen
+    private val _hardwareStatus = MutableStateFlow<HardwareStatus>(HardwareStatus.ConnectingNayax)
+    val hardwareStatus: StateFlow<HardwareStatus> = _hardwareStatus.asStateFlow()
 
     private lateinit var usbManager: UsbManager
     private var idScannerManager: IdScannerManager? = null
@@ -39,6 +47,9 @@ class HardwareService : Service() {
     private var motorControlManager: MotorControlManager? = null
     private var usbReceiver: UsbConnectionReceiver? = null
     private var permissionReceiver: BroadcastReceiver? = null
+
+    // Queue for USB permission requests - process one at a time to avoid dialog conflicts
+    private val pendingPermissionDevices = mutableListOf<UsbDevice>()
     
     companion object {
         private const val TAG = "HardwareService"
@@ -169,8 +180,10 @@ class HardwareService : Service() {
                                                 usbManager, it, serialPort, connection, serviceScope
                                             )
                                             nayaxPaymentManager?.initialize()
+                                            observeNayaxReadyState()
                                         } else {
                                             Log.e(TAG, "Failed to open Nayax serial port after permission grant")
+                                            _hardwareStatus.value = HardwareStatus.Error("Failed to open payment reader")
                                         }
                                     }
                                 }
@@ -178,6 +191,9 @@ class HardwareService : Service() {
                         } else {
                             Log.w(TAG, "USB permission denied for ${device?.deviceName}")
                         }
+                        
+                        // Process next device in permission queue (if any)
+                        processNextPermissionRequest()
                     }
                 }
             }
@@ -192,23 +208,13 @@ class HardwareService : Service() {
     }
 
     private fun initializeHardware() {
-        // Initialize ID Scanner (E-Seek M260)
-        val idScannerDevice = findUsbDevice(ID_SCANNER_VID, ID_SCANNER_PID)
-        if (idScannerDevice != null) {
-            if (usbManager.hasPermission(idScannerDevice)) {
-                Log.d(TAG, "ID Scanner: Permission already granted")
-                idScannerManager = IdScannerManager(usbManager, idScannerDevice, serviceScope)
-                idScannerManager?.initialize()
-            } else {
-                Log.d(TAG, "ID Scanner: Requesting permission")
-                requestUsbPermission(idScannerDevice)
-            }
-        } else {
-            Log.w(TAG, "ID Scanner device not found")
-        }
+        // IMPORTANT: Initialize Nayax FIRST, then ID Scanner
+        // Permission dialogs must be sequenced - only one at a time!
 
-        // Initialize Nayax VPOS Touch using official Marshall SDK
-        // The SDK was extracted from DMVI's APK and properly implements the protocol
+        // Update status for loading screen
+        _hardwareStatus.value = HardwareStatus.ConnectingNayax
+
+        // Initialize Nayax VPOS Touch using official Marshall SDK (Chipi-X FTDI interface)
         // CRITICAL: The VPOS has TWO USB interfaces - prefer FTDI (0403:6015) over CDC-ACM (26f1:5650)!
         // The FTDI interface is the one that actually works for Marshall protocol communication.
         val nayaxDevice = findUsbDevice(FTDI_VID, NAYAX_FTDI_PID)  // Try FTDI first!
@@ -225,22 +231,92 @@ class HardwareService : Service() {
                         usbManager, nayaxDevice, serialPort, connection, serviceScope
                     )
                     nayaxPaymentManager?.initialize()
+                    observeNayaxReadyState()
                 } else {
                     Log.e(TAG, "Failed to open Nayax serial port")
+                    _hardwareStatus.value = HardwareStatus.Error("Failed to open payment reader")
                 }
             } else {
-                Log.d(TAG, "Nayax: Requesting USB permission")
-                requestUsbPermission(nayaxDevice)
+                Log.d(TAG, "Nayax: Queuing permission request (will show FIRST)")
+                queuePermissionRequest(nayaxDevice)
             }
         } else {
             Log.w(TAG, "Nayax VPOS Touch device not found")
+            // Continue without Nayax - will show timeout on loading screen
         }
+
+        // Update status for loading screen
+        _hardwareStatus.value = HardwareStatus.ConnectingScanner
+
+        // Initialize ID Scanner (E-Seek M260) - SECOND priority
+        val idScannerDevice = findUsbDevice(ID_SCANNER_VID, ID_SCANNER_PID)
+        if (idScannerDevice != null) {
+            if (usbManager.hasPermission(idScannerDevice)) {
+                Log.d(TAG, "ID Scanner: Permission already granted")
+                idScannerManager = IdScannerManager(usbManager, idScannerDevice, serviceScope)
+                idScannerManager?.initialize()
+            } else {
+                Log.d(TAG, "ID Scanner: Queuing permission request (will show SECOND)")
+                queuePermissionRequest(idScannerDevice)
+            }
+        } else {
+            Log.w(TAG, "ID Scanner device not found")
+        }
+
+        // Start processing the permission queue (one at a time)
+        processNextPermissionRequest()
 
         // Setup USB connection monitoring
         setupUsbMonitoring()
     }
 
-    private fun requestUsbPermission(device: UsbDevice) {
+    /**
+     * Observe NayaxPaymentManager.isReady and update hardware status when ready.
+     * Called after Nayax is initialized to track when the payment system becomes available.
+     */
+    private fun observeNayaxReadyState() {
+        serviceScope.launch {
+            nayaxPaymentManager?.isReady?.collect { isReady ->
+                if (isReady) {
+                    Log.i(TAG, "Nayax payment system ready - updating hardware status")
+                    _hardwareStatus.value = HardwareStatus.Ready
+                }
+            }
+        }
+    }
+    
+    /**
+     * Add a device to the permission request queue.
+     * Permissions are requested one at a time to avoid Android dialog conflicts.
+     */
+    private fun queuePermissionRequest(device: UsbDevice) {
+        synchronized(pendingPermissionDevices) {
+            pendingPermissionDevices.add(device)
+            Log.d(TAG, "Queued permission request for ${device.deviceName} (queue size: ${pendingPermissionDevices.size})")
+        }
+    }
+    
+    /**
+     * Process the next device in the permission queue.
+     * Called after each permission is granted/denied to request the next one.
+     */
+    private fun processNextPermissionRequest() {
+        synchronized(pendingPermissionDevices) {
+            if (pendingPermissionDevices.isNotEmpty()) {
+                val device = pendingPermissionDevices.removeAt(0)
+                Log.i(TAG, "Processing permission request for ${device.deviceName} (${pendingPermissionDevices.size} remaining)")
+                requestUsbPermissionInternal(device)
+            } else {
+                Log.d(TAG, "Permission queue empty - all devices processed")
+            }
+        }
+    }
+
+    /**
+     * Internal method to actually request USB permission.
+     * Called by processNextPermissionRequest() to ensure only one dialog at a time.
+     */
+    private fun requestUsbPermissionInternal(device: UsbDevice) {
         Log.i(TAG, "Requesting USB permission for VID=0x${device.vendorId.toString(16)}, PID=0x${device.productId.toString(16)}, name=${device.deviceName}")
         val permissionIntent = PendingIntent.getBroadcast(
             this,

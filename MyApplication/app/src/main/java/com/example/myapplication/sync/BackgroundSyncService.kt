@@ -58,14 +58,16 @@ class BackgroundSyncService(
 
         /**
          * Trigger immediate one-time sync
+         * Uses NOT_REQUIRED network constraint since backend is on localhost
          */
         fun syncNow(context: Context) {
             val syncRequest = OneTimeWorkRequestBuilder<BackgroundSyncService>()
                 .setConstraints(
                     Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .setRequiredNetworkType(NetworkType.NOT_REQUIRED) // localhost doesn't need network
                         .build()
                 )
+                .addTag("immediate_sync")
                 .build()
 
             WorkManager.getInstance(context).enqueue(syncRequest)

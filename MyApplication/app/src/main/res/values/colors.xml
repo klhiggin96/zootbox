@@ -58,6 +58,11 @@
     <color name="anim_pink_500">#ec4899</color>
     <color name="anim_cyan_500">#06b6d4</color>
 
+    <!-- Checkout Colors -->
+    <color name="checkout_green">#28a745</color>
+    <color name="checkout_green_pressed">#22963d</color>
+    <color name="checkout_divider">#E5E5E5</color>
+
     <!-- Product Detail Page Colors -->
     <color name="header_green">#1B5E20</color>
     <color name="warning_yellow">#FFC107</color>

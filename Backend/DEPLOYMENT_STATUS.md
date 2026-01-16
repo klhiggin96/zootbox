@@ -1,10 +1,11 @@
 # ZootBox Backend - Deployment Status & Context
 
-**Date**: December 28, 2025
-**Status**: ✅ **DEPLOYMENT COMPLETE** - Backend running on tablet
+**Date**: January 10, 2026
+**Status**: ✅ **FULLY OPERATIONAL** - Backend running with sync verified
 **Tablet**: Connected (ADB ID: b0535a1f9f0f6ce0)
-**Backend Process**: Running (PID 5784)
-**API Endpoint**: http://localhost:8080 (via adb forward tcp:8080 tcp:8080)
+**Backend Process**: Running (PID varies)
+**API Endpoint**: http://100.120.168.44:8080 (via Tailscale VPN)
+**Database**: 10 coils (A1-J1) - Corrected from 100 coils
 
 ---
 
@@ -404,3 +405,53 @@ These features are implemented but not yet deployed/tested on tablet:
    - GET /metrics - Prometheus metrics endpoint
 
 **All code for these features exists and is tested** - just need to test via API once Android integration begins.
+
+---
+
+## January 2026 Updates
+
+### Database Fix (Jan 10, 2026)
+
+The backend database was incorrectly seeded with 100 coils (A1-A10 through J1-J10). Fixed to have exactly **10 coils (A1-J1)** matching the actual hardware:
+
+```sql
+DELETE FROM coils WHERE id NOT IN ('A1','B1','C1','D1','E1','F1','G1','H1','I1','J1');
+DELETE FROM transactions WHERE coil_id NOT IN ('A1','B1','C1','D1','E1','F1','G1','H1','I1','J1');
+```
+
+### HTTP_HOST Configuration (Jan 10, 2026)
+
+**⚠️ CRITICAL**: Backend must start with `HTTP_HOST=0.0.0.0` for portal access via Tailscale:
+
+```bash
+cd /data/data/com.termux/files/home/zootbox
+DB_PATH=/data/data/com.termux/files/home/zootbox/data/inventory.db HTTP_HOST=0.0.0.0 nohup ./backend > backend.log 2>&1 &
+```
+
+If `HTTP_HOST=127.0.0.1` (default), the backend only accepts localhost connections and the portal will show "Connection Refused".
+
+### End-to-End Sync Verified (Jan 10, 2026)
+
+✅ **SYNC WORKING**: Android app inventory changes now sync to backend immediately:
+
+1. Android Admin Panel changes inventory
+2. `InventoryRepository` triggers `BackgroundSyncService.syncNow()`
+3. POST `/api/v1/sync/inventory` sent to backend
+4. Backend updates database
+5. Portal sees updated values via `GET /api/v1/coils`
+
+**Backend Logs Showing Sync**:
+```
+INF Received inventory sync coils=10 source=android transactions=0
+INF Sync complete coils_updated=10 transactions_added=0
+```
+
+### Current API Status
+
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| GET /health | ✅ Working | Returns healthy status |
+| GET /api/v1/coils | ✅ Working | Returns 10 coils (A1-J1) |
+| POST /api/v1/sync/inventory | ✅ Working | Receives Android sync |
+| POST /api/v1/transactions | ✅ Working | Records vend events |
+| POST /api/v1/admin/refill | ✅ Working | Refills all coils |

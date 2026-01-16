@@ -7,7 +7,11 @@ graph TB
     Start([App Launch]) --> MainActivity
 
     subgraph MainActivity["MainActivity - Category Selection"]
-        MA_Init[Initialize UI<br/>• Fullscreen setup<br/>• Load 8 color schemes<br/>• Animate sections<br/>• Start HardwareService] --> MA_Display[Display 4 Categories:<br/>1. ZYNS<br/>2. VAPES<br/>3. CIGARETTES<br/>4. ZOOTBOX LEGENDARY LOOT]
+        MA_Init[Initialize UI<br/>• Show loading overlay<br/>• Fullscreen setup<br/>• Load 8 color schemes<br/>• Animate sections (behind overlay)] --> MA_Wait10s[Wait 10 seconds<br/>Loading: "Starting ZootBox..."]
+        MA_Wait10s --> MA_StartHW[Start HardwareService<br/>Loading: "Connecting to payment..."]
+        MA_StartHW --> MA_WaitReady[Wait for Nayax Ready<br/>Monitor isReady StateFlow]
+        MA_WaitReady --> MA_HideLoading[Loading: "Ready!"<br/>Fade out overlay (1.3s)]
+        MA_HideLoading --> MA_Display[Display 4 Categories:<br/>1. ZYNS<br/>2. VAPES<br/>3. CIGARETTES<br/>4. ZOOTBOX LEGENDARY LOOT]
         MA_Display --> MA_Wait{User Action?}
         MA_Wait -->|Tap Color Toggle| MA_ColorCycle[Cycle Color Scheme<br/>0→1→2→3→4→5→6→7→0]
         MA_ColorCycle --> MA_Display
@@ -129,10 +133,14 @@ graph TB
 ```mermaid
 stateDiagram-v2
     [*] --> Initialize
-    Initialize --> ApplyColorScheme: Load 8 color schemes
-    ApplyColorScheme --> AnimateSections: Stagger animations (600ms each)
-    AnimateSections --> StartHardwareService: startForegroundService()
-    StartHardwareService --> Ready: Display 4 category sections
+    Initialize --> ShowLoadingScreen: Display "Starting ZootBox..."
+    ShowLoadingScreen --> ApplyColorScheme: Load 8 color schemes (background)
+    ApplyColorScheme --> AnimateSections: Stagger animations (600ms each, behind overlay)
+    AnimateSections --> WaitUSBDatabase: 10-second delay
+    WaitUSBDatabase --> StartHardwareService: Update text to "Connecting to payment..."
+    StartHardwareService --> WaitHardwareReady: startForegroundService()
+    WaitHardwareReady --> ShowReady: Nayax isReady = true
+    ShowReady --> Ready: Fade out loading screen (800ms + 500ms)
 
     Ready --> ColorCycle: Tap color toggle button
     ColorCycle --> Ready: Apply next scheme (0-7)
@@ -143,12 +151,20 @@ stateDiagram-v2
     Ready --> Exit: Back button press
     Exit --> [*]
 
+    note right of ShowLoadingScreen
+        Full-screen loading overlay blocks
+        all interaction during initialization.
+        Prevents "Nayax not working" confusion.
+    end note
+
     note right of Ready
         User sees 4 stacked sections:
         1. ZYNS (btn_s1)
         2. VAPES (btn_s2)
         3. CIGARETTES (btn_s3)
         4. ZOOTBOX LEGENDARY LOOT (btn_s4)
+
+        Loading overlay dismissed - app interactive
     end note
 ```
 
@@ -931,6 +947,10 @@ gantt
 ### Timing Configuration
 | Event | Duration | Configurable |
 |-------|----------|--------------|
+| **HardwareService delay** | **10 seconds** | **Yes - MainActivity** |
+| **Loading "Ready!" display** | **800ms** | **Yes - MainActivity** |
+| **Loading overlay fade-out** | **500ms** | **Yes - MainActivity** |
+| **Loading timeout** | **30 seconds** | **Yes - MainActivity** |
 | Section animation stagger | 600ms per section | Yes - MainActivity |
 | Idle timeout to screensaver | 30 seconds | Yes - ProductGridActivity |
 | ID scan IDLE state | 1 second | Yes - IdScanActivity |
@@ -1000,3 +1020,25 @@ gantt
 13. **Immediate Inventory Sync (Jan 2026)**: The `InventoryRepository` now triggers `BackgroundSyncService.syncNow()` on every inventory change (`updateInventory()`, `resetAllInventory()`). This ensures the portal sees changes within seconds instead of waiting up to 1 hour. The sync uses `NetworkType.NOT_REQUIRED` constraint since it communicates with localhost. A `network_security_config.xml` was added to allow cleartext HTTP to localhost on Android 9+.
 
 14. **Backend HTTP_HOST Configuration (Jan 2026)**: The Go backend must start with `HTTP_HOST=0.0.0.0` (not `127.0.0.1`) for the portal to connect via Tailscale VPN. The backend database has exactly 10 coils (A1-J1) matching the 10 motors in the vending machine.
+
+15. **Kiosk Mode & Security Features (Jan 2026)**:
+    *   **App Pinning (Lock Task Mode)**: Enabled via `startLockTask()` in `MainActivity`. A **30-second delay** is implemented before activation to ensure background services (Tailscale, HardwareService) fully initialize and connect without interference.
+    *   **Notification Shade Blocking**: Robust touch interception is implemented in `MainActivity`, `ProductGridActivity`, `ProductDetailActivity`, and `ScreensaverActivity` by overriding `dispatchTouchEvent`.
+        *   **Blocking Zone**: Touches in the top **100dp** (approx. 300px) are consumed for both `ACTION_DOWN` and `ACTION_MOVE` events.
+        *   **Exceptions**: A **100dp x 100dp** safe zone in the top-left corner allows interaction with the "Back" button and the hidden Admin Panel trigger.
+
+16. **Loading Screen Implementation (Jan 2026)**:
+    *   **Problem**: The 10-second HardwareService delay (necessary for USB permission database to load) was causing user confusion. Users would see the app UI immediately but Nayax wasn't connected yet.
+    *   **Solution**: Full-screen loading overlay that blocks all interaction until hardware is ready.
+    *   **User Experience**:
+        *   0s: "Starting ZootBox..." (spinner visible)
+        *   10s: "Connecting to payment system..." (spinner visible)
+        *   ~18s: "Ready!" (spinner hidden)
+        *   ~19s: Loading overlay fades out → Main UI interactive
+    *   **Implementation**:
+        *   `HardwareStatus.kt` - Sealed class for initialization states
+        *   `HardwareService.kt` - Exposes `hardwareStatus: StateFlow<HardwareStatus>`, observes `NayaxPaymentManager.isReady`
+        *   `MainActivity.kt` - Service binding, observes hardware status, controls loading overlay
+        *   `activity_main.xml` - Full-screen FrameLayout overlay (elevation 1000dp)
+        *   30-second timeout with bypass option
+    *   **Benefit**: Eliminates "Nayax not working" confusion by providing clear visual feedback during initialization.

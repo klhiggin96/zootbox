@@ -349,6 +349,7 @@ class AdminPanelActivity : AppCompatActivity() {
                 }
                 Toast.makeText(this, "Updated $updatedCount coils", Toast.LENGTH_SHORT).show()
                 refreshInventoryView()
+                // Sync is automatically triggered by repository
             }
             .setNegativeButton("Cancel", null)
             .show()

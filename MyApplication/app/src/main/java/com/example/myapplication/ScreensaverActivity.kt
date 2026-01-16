@@ -162,8 +162,15 @@ class ScreensaverActivity : AppCompatActivity() {
         // Hide the navigation bar and status bar
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let { controller ->
-                controller.hide(WindowInsets.Type.navigationBars())
-                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                // Use BEHAVIOR_DEFAULT to prevent any swipe gestures from revealing bars
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+            }
+
+            // Add listener to immediately re-hide bars if they somehow appear
+            window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+                window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                view.onApplyWindowInsets(insets)
             }
         } else {
             @Suppress("DEPRECATION")
@@ -175,6 +182,21 @@ class ScreensaverActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             )
+
+            // Re-hide on any visibility change
+            @Suppress("DEPRECATION")
+            window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
+                if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+                    window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+                }
+            }
         }
 
         // Keep screen on
@@ -186,5 +208,16 @@ class ScreensaverActivity : AppCompatActivity() {
         if (hasFocus) {
             setupFullScreen()
         }
+    }
+
+    // Block touches at top of screen to prevent notification shade pull-down
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        val density = resources.displayMetrics.density
+        val statusBarHeight = (100 * density).toInt() // Block touches in top 100dp
+
+        if (ev.y < statusBarHeight && (ev.action == MotionEvent.ACTION_DOWN || ev.action == MotionEvent.ACTION_MOVE)) {
+            return true // Consume the touch event
+        }
+        return super.dispatchTouchEvent(ev)
     }
 }

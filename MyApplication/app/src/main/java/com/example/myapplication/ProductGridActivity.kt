@@ -10,6 +10,7 @@ import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -89,7 +90,7 @@ class ProductGridActivity : AppCompatActivity() {
             Product("05", "LIGHTER GOLD", "1", "5", R.drawable.zyn, price = 2.99, ageRestriction = 18, videoFileName = "lighter_gold.mp4", category = "CIGERATES"),
             Product("06", "ROLLING PAPERS", "1", "6", R.drawable.zyn, price = 3.99, ageRestriction = 18, videoFileName = "rolling_papers.mp4", category = "CIGERATES"),
             Product("07", "ENERGY SHOT", "1", "7", R.drawable.zyn, price = 3.49, videoFileName = "energy_shot.mp4", category = "ZOOTBOX LEGENDARY LOOT"),
-            Product("08", "GUM MINT", "1", "8", R.drawable.zyn, price = 1.99, videoFileName = "gum_mint.mp4", category = "ZyNS"),
+            Product("08", "GUM MINT", "1", "8", R.drawable.zyn, price = 1.99, scaleX = 0.95f, scaleY = 0.95f, videoFileName = "gum_mint.mp4", category = "ZyNS"),
             Product("09", "CONDOM PACK", "1", "9", R.drawable.zyn, price = 5.99, videoFileName = "condom_pack.mp4", category = "ZOOTBOX LEGENDARY LOOT"),
             Product("10", "WATER 500ML", "1", "10", R.drawable.zyn, price = 2.49, videoFileName = "water.mp4", category = "ZOOTBOX LEGENDARY LOOT"),
             Product("11", "Donate to the Autism Fund", "0", "0", R.drawable.img_donate, isDigital = true, price = 5.00, videoFileName = "donate.mp4", category = "ZOOTBOX LEGENDARY LOOT")
@@ -235,9 +236,28 @@ class ProductGridActivity : AppCompatActivity() {
         // bgVideoView2.pause()
     }
 
-    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // Block touches at top of screen to prevent notification shade pull-down,
+        // BUT allow the top-left corner for the Back Button.
+        val density = resources.displayMetrics.density
+        val statusBarHeight = (100 * density).toInt()
+        val backButtonSafeZone = (100 * density).toInt()
+
+        if (ev.y < statusBarHeight) {
+            // Check if touch is in the top-left corner (Back Button area)
+            if (ev.x < backButtonSafeZone) {
+                // Allow this touch to proceed
+                resetIdleTimer()
+                return super.dispatchTouchEvent(ev)
+            }
+            
+            // Otherwise block it
+            if (ev.action == MotionEvent.ACTION_DOWN || ev.action == MotionEvent.ACTION_MOVE) {
+                return true // Consume the touch event
+            }
+        }
         resetIdleTimer()
-        return super.dispatchTouchEvent(event)
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun resetIdleTimer() {
@@ -258,8 +278,15 @@ class ProductGridActivity : AppCompatActivity() {
         // Hide the navigation bar and status bar
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let { controller ->
-                controller.hide(WindowInsets.Type.navigationBars())
-                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                // Use BEHAVIOR_DEFAULT to prevent any swipe gestures from revealing bars
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+            }
+
+            // Add listener to immediately re-hide bars if they somehow appear
+            window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+                window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                view.onApplyWindowInsets(insets)
             }
         } else {
             @Suppress("DEPRECATION")
@@ -271,6 +298,21 @@ class ProductGridActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             )
+
+            // Re-hide on any visibility change
+            @Suppress("DEPRECATION")
+            window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
+                if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+                    window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+                }
+            }
         }
 
         // Keep screen on

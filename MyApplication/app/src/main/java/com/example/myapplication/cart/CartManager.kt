@@ -34,6 +34,7 @@ class CartManager(
 
     companion object {
         private const val TAG = "CartManager"
+        private const val TAX_RATE = 0.075  // 7.5% tax
     }
 
     /**
@@ -318,9 +319,11 @@ class CartManager(
 
     /**
      * Update total amount and item count
+     * Total amount includes 7.5% tax for Nayax payment
      */
     private fun updateTotals() {
-        _totalAmount.value = _cartItems.value.sumOf { it.totalPrice }
+        val subtotal = _cartItems.value.sumOf { it.totalPrice }
+        _totalAmount.value = subtotal * (1 + TAX_RATE)  // Include 7.5% tax
         _itemCount.value = _cartItems.value.sumOf { it.quantity }
     }
 

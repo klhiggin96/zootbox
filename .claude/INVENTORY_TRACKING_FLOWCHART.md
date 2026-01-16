@@ -1,7 +1,9 @@
 # ZootBox Inventory Tracking System - Complete Flow Chart
 
 **Created**: December 28, 2025
+**Updated**: January 10, 2026
 **System**: ZootBox Vending Machine (10 Coils: A1-J1)
+**Status**: ✅ End-to-End Sync Verified Working
 
 ---
 
@@ -408,8 +410,9 @@ END: Restocking Complete
 │ RESULT:                                                      │
 │ ✅ Local DB updated with new inventory                     │
 │ ✅ Android UI reflects new values immediately              │
-│ ⏳ Backend DB: Not yet synced (will sync in <1hr)         │
-│ ⏳ Portal: Will show updated values after next sync        │
+│ ✅ Immediate sync triggered to backend                     │
+│ ✅ Portal shows updated values within seconds              │
+│ ⏳ Backup sync runs every 1 hour (if immediate fails)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -419,12 +422,18 @@ END: Restocking Complete
 
 ### Step-by-Step: Android App Syncs to Backend
 
+**January 2026 Update**: Sync now triggers **immediately** on every inventory change, plus a backup sync every hour.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ AUTOMATIC SYNC (Every 1 Hour)                               │
+│ IMMEDIATE SYNC (On Every Inventory Change)                  │
+│ + BACKUP SYNC (Every 1 Hour)                                │
 └─────────────────────────────────────────────────────────────┘
 
-TRIGGER: WorkManager schedules BackgroundSyncService
+TRIGGERS:
+1. InventoryRepository.updateInventory() → syncNow()
+2. InventoryRepository.resetAllInventory() → syncNow()
+3. WorkManager periodic schedule (backup every 1 hour)
 │
 ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -1484,7 +1493,8 @@ This flowchart demonstrates:
    - Always up-to-date
 
 2. **Backend DB** is a **mirror** for remote monitoring
-   - Receives updates every hour via background sync
+   - Receives **immediate updates** on every inventory change (Jan 2026)
+   - Backup sync every hour ensures no data loss
    - Serves portal API requests
    - Can trigger refills that propagate back to Android
 
@@ -1494,7 +1504,7 @@ This flowchart demonstrates:
    - Changes sync back to Android within 1 hour
 
 4. **Data flows in both directions**
-   - Android → Backend: Automatic hourly sync
+   - Android → Backend: **Immediate sync** on inventory change
    - Backend → Portal: Real-time API queries
    - Portal → Backend: Admin operations
    - Backend → Android: Next sync cycle
@@ -1505,7 +1515,9 @@ This flowchart demonstrates:
    - Portal shows stale data warnings
    - No data loss on power failures (WAL mode)
 
-6. **Backend Error Handling** (NEW)
+6. **Backend Configuration** (Jan 2026 Update)
+   - **HTTP_HOST=0.0.0.0** required for Tailscale/portal access
+   - Database: 10 coils (A1-J1), not 100
    - CORS validation blocks unauthorized origins
    - JSON parsing errors return 400 Bad Request
    - Database errors trigger transaction rollback
@@ -1514,4 +1526,4 @@ This flowchart demonstrates:
    - Data integrity validation on every startup
    - Health checks monitor system status
 
-The system ensures **eventual consistency** across all three layers while maintaining **Android as the authoritative source** and **guaranteeing data integrity** through comprehensive error handling.
+The system ensures **near-real-time consistency** across all three layers while maintaining **Android as the authoritative source** and **guaranteeing data integrity** through comprehensive error handling.

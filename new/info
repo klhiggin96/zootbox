@@ -1,0 +1,122 @@
+NAYAX POWER & SERIAL COMMUNICATION – CONFIRMED FINDINGS
+
+This document summarizes confirmed hardware and wiring behavior observed on the Nayax installation.
+These findings are based on physical inspection of the wiring, power brick, and USB/COM connection.
+
+--------------------------------------------------
+1. PHYSICAL WIRING OVERVIEW
+--------------------------------------------------
+
+The Nayax system uses TWO SEPARATE CONNECTION PATHS:
+
+A) POWER PATH (NOT DATA)
+- Nayax is powered by an external 24V DC power brick.
+- Power brick specs observed:
+  - Output: 24V DC, 2.5A (60W)
+- Power runs:
+  AC mains → 24V power brick → black DC cable → inline connector → yellow cable → Nayax
+- This cable provides ONLY power.
+- This is NOT USB and NOT data.
+
+Important implication:
+- The Nayax is always powered when AC is present.
+- USB connect/disconnect does NOT reset or reboot the Nayax.
+
+--------------------------------------------------
+2. DATA PATH (MARSHALL PROTOCOL)
+--------------------------------------------------
+
+Data communication is on a SEPARATE cable:
+
+- A yellow cable connects directly to the Nayax board via a COM/UART port.
+- That yellow cable terminates in a USB adapter (USB-to-Serial).
+- The host sees this as a USB serial device (e.g. /dev/ttyUSB*).
+
+This means:
+- The Nayax is NOT a native USB device.
+- Communication is UART/COM → USB bridge (FTDI / CH340 / CP210x style).
+- Marshall protocol runs over this serial link.
+
+--------------------------------------------------
+3. CRITICAL BEHAVIORAL CONSEQUENCES
+--------------------------------------------------
+
+Because power and data are separate:
+
+- Nayax boots independently of the host.
+- Opening or closing the USB serial port does NOT reset the Nayax.
+- The Nayax firmware is already running and waiting for a valid Marshall handshake.
+
+If the handshake is incorrect or disrupted:
+- Nayax UI remains in “Cash Only” mode.
+- Reader appears powered and functional but will not enable cashless.
+
+--------------------------------------------------
+4. SERIAL PORT REQUIREMENTS (NON-NEGOTIABLE)
+--------------------------------------------------
+
+Serial parameters expected by Nayax Marshall protocol:
+
+- Baud rate: 115200 (most common)
+- Data bits: 8
+- Parity: None
+- Stop bits: 1
+- Flow control: NONE
+- DTR: MUST NOT be toggled
+- RTS: MUST NOT be toggled
+- HUPCL: MUST be disabled
+
+The port must be:
+- Opened once
+- Left open
+- Not reset or reconfigured mid-session
+
+--------------------------------------------------
+5. COMMON FAILURE MODES THAT CAUSE “CASH ONLY”
+--------------------------------------------------
+
+Any of the following will silently break the session:
+
+- Toggling DTR or RTS on open
+- USB reset assumptions
+- Closing/reopening the port during retries
+- Partial reads passed upstream
+- Reading arbitrary byte counts instead of framed packets
+- Sending data before a full Marshall frame is assembled
+
+Note:
+USB reset ≠ Nayax reset.
+
+--------------------------------------------------
+6. READ / PARSE REQUIREMENTS
+--------------------------------------------------
+
+- Incoming serial data must be buffered.
+- Packet length is defined by the first 2 bytes (little-endian).
+- Frames must be read in full before being processed.
+- Partial frames must NOT be forwarded to the Marshall state machine.
+
+This behavior matches DMVI’s lowlevel_serial_ftdi implementation.
+
+--------------------------------------------------
+7. SUCCESS INDICATORS
+--------------------------------------------------
+
+When the serial link and handshake are correct:
+
+- Nayax exits “Cash Only” within a few seconds
+- Marshall status responses are received
+- Reader becomes interactive and ready for transactions
+
+--------------------------------------------------
+SUMMARY
+--------------------------------------------------
+
+The issue is NOT power, NOT USB enumeration, and NOT networking.
+
+It is a SERIAL TRANSPORT DISCIPLINE issue caused by:
+- Always-on Nayax power
+- UART-over-USB communication
+- Strict Marshall framing and timing expectations
+
+Fixing the serial open behavior and read loop should resolve the issue.

@@ -6,7 +6,6 @@ import com.bitmick.utils.ByteArrayUtils;
 import com.bitmick.utils.Log;
 import com.bitmick.utils.StringUtils;
 import java.util.ArrayList;
-import kotlin.UShort;
 /* loaded from: classes.dex */
 public class marshall_t {
     public static int MARSHALL_MSG_MAX_SIZE = 512;
@@ -275,7 +274,7 @@ public class marshall_t {
                 return -1;
             }
             this.crc16 = ByteArrayUtils.byteArrToShort(bArr, byteArrToShort + i);
-            int Calc_CRC_CCITT = marshall_t.Calc_CRC_CCITT(bArr, i, this.packet_len, (short) 0) & UShort.MAX_VALUE;
+            int Calc_CRC_CCITT = marshall_t.Calc_CRC_CCITT(bArr, i, this.packet_len, (short) 0) & 0xFFFF;
             int i11 = 65535 & this.crc16;
             if (i11 != Calc_CRC_CCITT) {
                 Log.d(marshall_t.TAG, String.format("wrong crc on packet(%02x), index: %d, length: %d, crc_rx: %04x, crc_calc: %04x", Integer.valueOf(this.id & 255), Integer.valueOf(i), Short.valueOf(this.packet_len), Integer.valueOf(i11), Integer.valueOf(Calc_CRC_CCITT)));

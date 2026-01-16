@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.Log
 import com.example.myapplication.database.models.Coil
 import com.example.myapplication.database.models.Transaction
+import com.example.myapplication.sync.BackgroundSyncService
 
 /**
  * Repository layer for inventory database operations
@@ -16,6 +17,7 @@ import com.example.myapplication.database.models.Transaction
  */
 class InventoryRepository private constructor(context: Context) {
 
+    private val appContext: Context = context.applicationContext
     private val dbHelper = InventoryDatabase.getInstance(context)
     private val db: SQLiteDatabase
         get() = dbHelper.writableDatabase
@@ -106,6 +108,8 @@ class InventoryRepository private constructor(context: Context) {
 
         if (rowsAffected > 0) {
             Log.d(TAG, "Updated coil $coilId inventory to $newCount")
+            // Trigger immediate sync to backend
+            BackgroundSyncService.syncNow(appContext)
             return true
         }
 
@@ -174,6 +178,8 @@ class InventoryRepository private constructor(context: Context) {
             return 0
         } finally {
             db.endTransaction()
+            // Trigger immediate sync to backend after transaction completes
+            BackgroundSyncService.syncNow(appContext)
         }
     }
 

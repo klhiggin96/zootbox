@@ -1,12 +1,17 @@
 package com.example.myapplication
 
 import android.animation.ObjectAnimator
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -15,6 +20,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +28,11 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.hardware.HardwareService
+import com.example.myapplication.hardware.HardwareStatus
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,6 +51,29 @@ class MainActivity : AppCompatActivity() {
     private lateinit var devLabel2: TextView
     private lateinit var devLabel3: TextView
     private lateinit var devLabel4: TextView
+
+    // Loading screen views
+    private lateinit var loadingOverlay: FrameLayout
+    private lateinit var loadingStatusText: TextView
+    private lateinit var loadingSpinner: ProgressBar
+
+    // Hardware service binding
+    private var hardwareService: HardwareService? = null
+    private var serviceBound = false
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as HardwareService.LocalBinder
+            hardwareService = binder.getService()
+            serviceBound = true
+            observeHardwareStatus()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            hardwareService = null
+            serviceBound = false
+        }
+    }
 
     private val colorSchemes = ColorSchemes.getAll()
     private var currentSchemeIndex = 0
@@ -74,6 +108,15 @@ class MainActivity : AppCompatActivity() {
         devLabel3 = findViewById(R.id.devLabel3)
         devLabel4 = findViewById(R.id.devLabel4)
 
+        // Initialize loading overlay views
+        loadingOverlay = findViewById(R.id.loadingOverlay)
+        loadingStatusText = findViewById(R.id.loadingStatusText)
+        loadingSpinner = findViewById(R.id.loadingSpinner)
+
+        // Show loading overlay immediately and block interaction
+        loadingOverlay.visibility = View.VISIBLE
+        loadingStatusText.text = getString(R.string.loading_starting)
+
         // Apply initial color scheme
         applyColorScheme(colorSchemes[currentSchemeIndex])
 
@@ -97,22 +140,60 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        // Delay hardware service start by 10 seconds to allow USB permission database to load
+        /*
+         * CRITICAL: 10-second delay before starting HardwareService
+         *
+         * WHY: On device boot, when MyApplication launches as the HOME app (~10s after power-on),
+         * the Android USB permission database (/data/system/users/0/usb_device_manager.xml) hasn't
+         * fully loaded yet (~15-20s after power-on). Starting HardwareService immediately causes
+         * "USB permission denied" errors even if permission was previously granted.
+         *
+         * TIMELINE:
+         *   ~10s: App launches as HOME app
+         *   ~15s: USB permission database loads
+         *   ~20s: HardwareService starts (after this 10s delay)
+         *   ~25s: Nayax/Scanner connected
+         *
+         * SEE: BOOT_AND_USB_IMPLEMENTATION.md for full documentation
+         */
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             try {
-                val serviceIntent = Intent(this, com.example.myapplication.hardware.HardwareService::class.java)
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                loadingStatusText.text = getString(R.string.loading_connecting_payment)
+                val serviceIntent = Intent(this, HardwareService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent)
                 } else {
                     @Suppress("DEPRECATION")
                     startService(serviceIntent)
                 }
+                // Bind to service to observe hardware status
+                bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 Log.i("MainActivity", "HardwareService started after 10s delay")
             } catch (e: Exception) {
                 Log.e("MainActivity", "Failed to start HardwareService", e)
+                loadingStatusText.text = getString(R.string.loading_error)
+                loadingSpinner.visibility = View.GONE
                 e.printStackTrace()
             }
         }, 10000) // 10 second delay
+
+        // Timeout handling: If hardware doesn't connect after 30 seconds, allow bypass
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (loadingOverlay.visibility == View.VISIBLE) {
+                Log.w("MainActivity", "Hardware initialization timeout - allowing bypass")
+                loadingStatusText.text = getString(R.string.loading_timeout)
+                loadingSpinner.visibility = View.GONE
+                loadingOverlay.setOnClickListener {
+                    loadingOverlay.visibility = View.GONE
+                }
+            }
+        }, 30000) // 30 second total timeout
+
+        // Kiosk Mode (App Pinning) - DISABLED FOR DEVELOPMENT
+        // Uncomment below for production deployment:
+        // android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+        //      enableAppPinning()
+        // }, 30000) // 30 seconds delay
 
         // Auto-start backend and Tailscale
         BootManager.startZootBoxServices(this)
@@ -129,8 +210,6 @@ class MainActivity : AppCompatActivity() {
         // adb shell "settings put global lock_task_packages com.example.myapplication"
         // adb shell "am start -n com.example.myapplication/.MainActivity"
         // Then call startLockTask() manually
-
-        Toast.makeText(this, "USB Connection Active", Toast.LENGTH_LONG).show()
 
         // Setup simple animations for entrance
         setupEntranceAnimations()
@@ -175,11 +254,11 @@ class MainActivity : AppCompatActivity() {
     private fun setupEntranceAnimations() {
         // Slide up animation for sections
         val sections = listOf(section4, section3, section2, section1) // Bottom to top
-        
+
         sections.forEachIndexed { index, view ->
             view.alpha = 0f
             view.translationY = 100f
-            
+
             view.animate()
                 .alpha(1f)
                 .translationY(0f)
@@ -187,6 +266,46 @@ class MainActivity : AppCompatActivity() {
                 .setStartDelay(index * 150L) // Staggered
                 .setInterpolator(AccelerateDecelerateInterpolator())
                 .start()
+        }
+    }
+
+    /**
+     * Observe hardware status from HardwareService and update loading screen accordingly.
+     * Called after service binding is complete.
+     */
+    private fun observeHardwareStatus() {
+        lifecycleScope.launch {
+            // Observe NayaxPaymentManager.isReady to know when payment system is connected
+            hardwareService?.getNayaxPaymentManager()?.isReady?.collect { isReady ->
+                if (isReady && loadingOverlay.visibility == View.VISIBLE) {
+                    Log.i("MainActivity", "Hardware ready - dismissing loading screen")
+
+                    // Hardware is ready - hide loading screen with animation
+                    loadingStatusText.text = getString(R.string.loading_ready)
+                    loadingSpinner.visibility = View.GONE
+
+                    // Brief delay to show "Ready!" message
+                    delay(800)
+
+                    // Fade out loading overlay
+                    loadingOverlay.animate()
+                        .alpha(0f)
+                        .setDuration(500)
+                        .withEndAction {
+                            loadingOverlay.visibility = View.GONE
+                            loadingOverlay.alpha = 1f  // Reset for next time
+                        }
+                        .start()
+                }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (serviceBound) {
+            unbindService(serviceConnection)
+            serviceBound = false
         }
     }
 
@@ -199,9 +318,14 @@ class MainActivity : AppCompatActivity() {
             window.insetsController?.let { controller ->
                 // Hide both status bar and navigation bar
                 controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                // IMPORTANT: Use SHOW_BARS_BY_SWIPE instead of SHOW_TRANSIENT_BARS_BY_SWIPE
-                // This prevents the status bar from being swiped down
-                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_BARS_BY_SWIPE
+                // Use BEHAVIOR_DEFAULT to prevent any swipe gestures from revealing bars
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+            }
+
+            // Add listener to immediately re-hide bars if they somehow appear
+            window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+                window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                view.onApplyWindowInsets(insets)
             }
         } else {
             @Suppress("DEPRECATION")
@@ -211,8 +335,23 @@ class MainActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY  // This prevents swipe-down
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
             )
+
+            // Re-hide on any visibility change
+            @Suppress("DEPRECATION")
+            window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
+                if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+                    window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+                }
+            }
         }
 
         // Keep screen on (kiosk requirement)
@@ -230,6 +369,32 @@ class MainActivity : AppCompatActivity() {
         if (hasFocus) {
             setupFullScreen()
         }
+    }
+
+    // Block touches at top of screen to prevent notification shade pull-down
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // Convert 100dp to pixels
+        val density = resources.displayMetrics.density
+        val statusBarHeight = (100 * density).toInt()
+        val safeZoneSize = (100 * density).toInt() // Allow corners for Admin Tap and Color Toggle
+        val screenWidth = resources.displayMetrics.widthPixels
+
+        if (ev.y < statusBarHeight) {
+             // EXCEPTION: Allow touches in the top-left corner (Admin Access)
+            if (ev.x < safeZoneSize) {
+                return super.dispatchTouchEvent(ev)
+            }
+
+            // EXCEPTION: Allow touches in the top-right corner (Color Scheme Toggle)
+            if (ev.x > screenWidth - safeZoneSize) {
+                return super.dispatchTouchEvent(ev)
+            }
+
+            if (ev.action == MotionEvent.ACTION_DOWN || ev.action == MotionEvent.ACTION_MOVE) {
+                return true // Consume the touch event
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun enableAppPinning() {

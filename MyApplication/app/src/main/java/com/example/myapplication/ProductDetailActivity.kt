@@ -11,8 +11,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.IBinder
+import android.os.Build
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -25,6 +30,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.cart.CartManager
 import com.example.myapplication.database.InventoryRepository
@@ -107,6 +113,9 @@ class ProductDetailActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_product_detail)
+
+        // Enable kiosk mode
+        setupFullScreen()
 
         // Initialize inventory repository and cart manager
         inventoryRepo = InventoryRepository.getInstance(this)
@@ -933,5 +942,75 @@ class ProductDetailActivity : AppCompatActivity() {
                 checkInventoryAndUpdateUI()
             }
         }
+    }
+
+    private fun setupFullScreen() {
+        // Make the app edge-to-edge
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Hide the navigation bar and status bar
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.let { controller ->
+                controller.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+            }
+
+            window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+                window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                view.onApplyWindowInsets(insets)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+
+            @Suppress("DEPRECATION")
+            window.decorView.setOnSystemUiVisibilityChangeListener { visibility ->
+                if (visibility and View.SYSTEM_UI_FLAG_FULLSCREEN == 0) {
+                    window.decorView.systemUiVisibility = (
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+                }
+            }
+        }
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            setupFullScreen()
+        }
+    }
+
+    // Block touches at top of screen to prevent notification shade pull-down
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        val density = resources.displayMetrics.density
+        val statusBarHeight = (100 * density).toInt() // Block touches in top 100dp
+        val backButtonSafeZone = (100 * density).toInt()
+
+        if (ev.y < statusBarHeight) {
+            // EXCEPTION: Allow touches in the top-left corner for the Back Button
+            if (ev.x < backButtonSafeZone) {
+                return super.dispatchTouchEvent(ev)
+            }
+
+            if (ev.action == MotionEvent.ACTION_DOWN || ev.action == MotionEvent.ACTION_MOVE) {
+                return true // Consume the touch event
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 }

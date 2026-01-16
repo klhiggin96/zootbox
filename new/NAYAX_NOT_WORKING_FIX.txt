@@ -1,0 +1,92 @@
+PROBLEM: Nayax reader not working after app install/restart
+============================================================
+STATUS: **RESOLVED** (Jan 2026 - Loading Screen Implementation)
+
+SYMPTOMS:
+- Nayax VPOS Touch not responding to card taps
+- USB serial bridge shows data but no payment processing
+- No NayaxPaymentManager logs appearing
+
+ROOT CAUSE:
+The HardwareService (which initializes the Nayax connection) has a
+10-second delay before starting. This is intentional to allow USB
+permission database to load first. The problem was that users had
+NO VISUAL FEEDBACK during this initialization period, causing
+confusion when Nayax appeared non-functional.
+
+SOLUTION IMPLEMENTED: Full Loading Screen
+============================================================
+
+A full-screen loading overlay was added to MainActivity that:
+1. Blocks all user interaction during initialization
+2. Shows clear status messages at each phase
+3. Auto-dismisses when hardware is ready
+
+USER EXPERIENCE NOW:
+------------------------------------------------------------
+Phase 1 (0-10s):   "Starting ZootBox..."     [spinner]
+Phase 2 (10-20s):  "Connecting to payment..." [spinner]
+Phase 3 (Ready):   "Ready!"                   [no spinner]
+                   → Loading overlay fades out
+                   → Main UI becomes interactive
+
+Timeout (30s):     "Payment system unavailable
+                   Touch to continue"
+                   → Allows bypass if hardware fails
+
+FILES MODIFIED:
+------------------------------------------------------------
+- MainActivity.kt
+  - Added loading overlay view references
+  - Added HardwareService binding with ServiceConnection
+  - Added observeHardwareStatus() to monitor NayaxPaymentManager.isReady
+  - Added 30-second timeout with bypass option
+  - Removed misleading "USB Connection Active" toast
+  - Added comprehensive documentation comment explaining 10s delay
+
+- activity_main.xml
+  - Added loadingOverlay FrameLayout (covers entire screen)
+  - Added loadingSpinner ProgressBar
+  - Added loadingStatusText TextView
+  - High elevation (1000dp) to appear above all content
+
+- hardware/HardwareStatus.kt (NEW)
+  - Sealed class for hardware initialization states
+  - States: WaitingForUsbDatabase, ConnectingNayax, ConnectingScanner, Ready, Error
+
+- hardware/HardwareService.kt
+  - Added hardwareStatus StateFlow
+  - Added observeNayaxReadyState() to track Nayax connection
+  - Status updates at each initialization stage
+
+- res/values/strings.xml
+  - Added loading message strings
+
+STARTUP SEQUENCE NOW:
+------------------------------------------------------------
+1. App launches (0s) - Loading overlay shows "Starting ZootBox..."
+2. Tailscale/backend services start
+3. Loading text changes to "Connecting to payment..." (10s)
+4. HardwareService starts and initializes Nayax
+5. NayaxPaymentManager.isReady becomes true
+6. Loading text changes to "Ready!" briefly
+7. Loading overlay fades out - app is usable
+
+TO VERIFY:
+------------------------------------------------------------
+adb logcat | grep -i "nayax\|hardware\|MainActivity"
+
+You should see:
+- "HardwareService started after 10s delay"
+- "Nayax: Permission already granted, opening serial port"
+- "Nayax payment system ready - updating hardware status"
+- "Hardware ready - dismissing loading screen"
+
+WHY THIS PREVENTS FUTURE CONFUSION:
+------------------------------------------------------------
+| Before                              | After                                |
+|-------------------------------------|--------------------------------------|
+| App looks ready immediately         | App clearly shows it's loading       |
+| User tries to pay, nothing happens  | User can't interact until ready      |
+| User thinks Nayax is broken         | User sees "Connecting to payment..." |
+| Requires reading docs or waiting    | Clear visual feedback at every stage |

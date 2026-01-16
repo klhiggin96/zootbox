@@ -1,6 +1,6 @@
 # Nayax VPOS Touch Implementation Status
 
-**Date:** 2026-01-10 (UPDATED - Motor Dispensing Fix)
+**Date:** 2026-01-16 (UPDATED - Loading Screen Implementation)
 **Status:** **FULLY OPERATIONAL - END-TO-END PAYMENT & DISPENSING WORKING**
 
 ---
@@ -27,6 +27,8 @@ The Nayax VPOS Touch is now fully integrated with the ZootBox Android applicatio
 13. **NEW: Fixed duplicate packet processing causing CMD=13 boot loop**
 14. **NEW: Fixed vend_approved callback not firing in Pre-Selection mode (state=2)**
 15. **NEW: Refactored motor vending logic to eliminate double payment initiation**
+16. **NEW: Fixed singleton reset issue causing "CASH ONLY" on app restart**
+17. **NEW: Added full-screen loading overlay to prevent user confusion during initialization (2026-01-16)**
 
 ---
 
@@ -245,12 +247,17 @@ val config = vmc_configuration().apply {
 | `AndroidUsbPort.java` | Middleman bridging USB to Marshall SDK | Added |
 | `vmc_link.java` | Added polling thread, invalid packet logging | Done |
 | `vmc_vend_t.java` | **RECONSTRUCTED handleMessage()** + **PRE-SELECTION vend_approved FIX** | Fixed |
-| `NayaxPaymentManager.kt` | DMVI config values, **always_idle = true**, removed session_start() | Done |
+| `vmc_framework.java` | **NEW: Added `reset()` method** to clear singleton state for clean restart | Updated |
+| `NayaxPaymentManager.kt` | DMVI config values, **always_idle = true**, removed session_start(), **singleton reset on init/close** | Done |
 | `auto_usb_grant.sh` | **Multi-device support**, continues monitoring after each dialog | Updated |
 | `CheckoutBottomSheetFragment.kt` | Tax rate changed from 8.5% to **7.5%** | Updated |
 | `ProductDetailActivity.kt` | **Refactored motor dispensing**, extracted `dispenseProducts()`, fixed double payment | Updated |
 | `CartManager.kt` | Cart total includes 7.5% tax | Updated |
 | `NayaxPaymentManager.kt` | Use `roundToInt()` instead of `toInt()` for cent conversion | Updated |
+| `HardwareStatus.kt` | **NEW: Sealed class for hardware initialization states** (2026-01-16) | Added |
+| `MainActivity.kt` | **NEW: Loading overlay logic, service binding, hardware status observation** (2026-01-16) | Updated |
+| `activity_main.xml` | **NEW: Full-screen loading overlay with spinner and status text** (2026-01-16) | Updated |
+| `strings.xml` | **NEW: Loading screen message strings** (2026-01-16) | Updated |
 
 ---
 
@@ -464,6 +471,88 @@ This caused:
 **Files:** `ProductDetailActivity.kt:775-857` (new function), `ProductDetailActivity.kt:585-612` (fixed), `ProductDetailActivity.kt:740` (refactored)
 **Result:** Motors now trigger immediately after payment approval in both "Add to Cart" and "Buy Now" flows
 
+### Phase 8: Singleton Management (NEW - CRITICAL)
+
+#### 26. vmc_framework Singleton Not Reset on App Restart
+**Problem:** After app restart (without force-stop), the Nayax reader displayed "CASH ONLY" instead of "Tap Card". This happened because:
+1. The `vmc_framework` class uses a static singleton pattern (`getInstance()`)
+2. When the Android process survives app restart, the old singleton instance was reused
+3. The old `vmc_vend_t` had cached `m_vmc_configuration` with `reader_always_on = false`
+4. Even though `configure(config)` was called with `reader_always_on = true`, the `vmc_vend_t` kept its stale cached reference (line 237: `m_vmc_configuration = m_vmc_link.get_configuration()`)
+5. Result: `session_start(0)` was never triggered in `change_state()` because `reader_always_on` was `false` in the cached config
+
+**Root Cause:** The `vmc_framework` singleton had no reset mechanism, causing stale configuration to persist across app restarts within the same Android process lifecycle.
+
+**Solution:** Added singleton reset functionality:
+1. **Added `reset()` method to `vmc_framework.java`** (lines 46-56):
+   ```java
+   public static void reset() {
+       if (m_instance != null) {
+           Log.d(TAG, "Resetting vmc_framework singleton");
+           try {
+               m_instance.stop();
+           } catch (Exception e) {
+               Log.e(TAG, "Error stopping framework during reset: " + e.getMessage());
+           }
+           m_instance = null;
+       }
+   }
+   ```
+
+2. **Updated `NayaxPaymentManager.initialize()`** (line 158) - Calls `vmc_framework.reset()` before `getInstance()` to ensure clean state with fresh configuration
+
+3. **Updated `NayaxPaymentManager.close()`** (line 527) - Calls `vmc_framework.reset()` instead of just `stop()` for proper cleanup
+
+**Files:**
+- `vmc_framework.java:46-56` (new reset method)
+- `NayaxPaymentManager.kt:158` (call reset before getInstance)
+- `NayaxPaymentManager.kt:527` (call reset in close)
+
+**Result:** Reader now properly shows "Tap Card" after app restart, maintaining `reader_always_on = true` configuration
+
+---
+
+### Phase 9: User Experience - Loading Screen (2026-01-16)
+
+**Problem:** Users experienced confusion during the 10-second HardwareService delay. The app appeared ready immediately, but the Nayax reader wasn't connected yet. Users would try to initiate payments and nothing would happen.
+
+**Root Cause:** The 10-second delay was correct and necessary (to wait for USB permission database to load), but there was no UI indication that hardware initialization was in progress.
+
+**Solution:** Implemented full-screen loading overlay that blocks all interaction until hardware is fully initialized.
+
+**Implementation:**
+1. **Created `HardwareStatus.kt`** - Sealed class for hardware initialization states:
+   ```kotlin
+   sealed class HardwareStatus {
+       object WaitingForUsbDatabase : HardwareStatus()
+       object ConnectingNayax : HardwareStatus()
+       object ConnectingScanner : HardwareStatus()
+       object Ready : HardwareStatus()
+       data class Error(val message: String) : HardwareStatus()
+   }
+   ```
+
+2. **Updated `HardwareService.kt`** - Added `hardwareStatus: StateFlow<HardwareStatus>` to expose initialization state and `observeNayaxReadyState()` to monitor `NayaxPaymentManager.isReady`
+
+3. **Updated `MainActivity.kt`** - Added:
+   - Service binding with `ServiceConnection`
+   - `observeHardwareStatus()` to monitor `NayaxPaymentManager.isReady`
+   - Loading overlay auto-dismisses when `isReady = true`
+   - 30-second timeout with bypass option
+   - Removed misleading "USB Connection Active" toast
+
+4. **Updated `activity_main.xml`** - Added full-screen FrameLayout loading overlay (elevation 1000dp) with ZootBox logo, progress spinner, and status text
+
+5. **Updated `strings.xml`** - Added loading message strings
+
+**User Experience:**
+- 0s: "Starting ZootBox..." (spinner visible)
+- 10s: "Connecting to payment system..." (spinner visible)
+- ~18s: "Ready!" (spinner hidden)
+- ~19s: Loading overlay fades out → Main UI interactive
+
+**Result:** Users now see clear visual feedback at every stage of initialization. The app blocks interaction until hardware is ready, preventing confusion and eliminating the "Nayax not working" reports.
+
 ---
 
 ## Marshall Protocol Reference
@@ -523,6 +612,7 @@ End-to-end payment and dispensing flow is fully operational:
 - Payment authorization completing successfully
 - Motors dispensing products immediately after approval
 - Transaction settlement and logging working correctly
+- **App restart now maintains "Tap Card" state (singleton reset fix)**
 
 ---
 
@@ -568,6 +658,7 @@ The Nayax VPOS Touch payment integration is fully operational with Pre-Selection
 - ✅ **Connection Stability:** Duplicate packet processing fixed, no more CMD=13 boot loops
 - ✅ **Motor Dispensing:** vend_approved callback firing in Pre-Selection mode, motors trigger immediately after payment
 - ✅ **Payment Flow:** No double payment initiation, clean transition from approval to dispensing
+- ✅ **Singleton Management:** Framework resets on init/close, preventing "CASH ONLY" on app restart
 
 ## Current Payment Flow (Pre-Selection - END-TO-END)
 

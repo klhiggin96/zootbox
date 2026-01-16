@@ -277,12 +277,18 @@ public class UsbSerialBridge implements lowlevel_i {
                 Log.i(TAG, ">>> RECEIVED " + bytesRead + " bytes from serial port!");
 
                 // FIX 2: Dispatch raw data to callback if registered
+                // When dataCallback is set, data is processed by SerialPortPollingRunnable
+                // via AndroidUsbPort's CircularBuffer - DO NOT also call processPackets()!
                 if (dataCallback != null) {
                     byte[] rawData = new byte[bytesRead];
                     System.arraycopy(tempBuffer, 0, rawData, 0, bytesRead);
                     dataCallback.onDataReceived(rawData);
+                    // Skip processPackets() - SerialPortPollingRunnable handles packet framing
+                    logData("RX->Callback", tempBuffer, bytesRead);
+                    continue;
                 }
 
+                // LEGACY PATH: Only used when dataCallback is NOT set (lowlevel_i mode)
                 // Copy to rx buffer - DMVI line 118
                 System.arraycopy(tempBuffer, 0, rxBuffer, head, bytesRead);
                 head += bytesRead;

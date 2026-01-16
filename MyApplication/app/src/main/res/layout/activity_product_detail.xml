@@ -10,7 +10,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/white"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -18,91 +20,34 @@
             android:background="@android:color/transparent">
 
             <!-- Large Product Image Area (Top ~30% of screen) -->
-        <androidx.cardview.widget.CardView
+        <FrameLayout
             android:id="@+id/card_product_image"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="16dp"
-            app:cardBackgroundColor="@color/product_image_placeholder"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintHeight_percent="0.30">
+            app:layout_constraintDimensionRatio="4:3">
 
-            <FrameLayout
+            <ImageView
+                android:id="@+id/detail_image"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
 
-                <ImageView
-                    android:id="@+id/detail_image"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:background="@color/product_image_placeholder" />
-
-                <VideoView
-                    android:id="@+id/detail_video"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone" />
-            </FrameLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Warning Banner -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_warning"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            app:cardBackgroundColor="@color/black"
-            app:cardCornerRadius="0dp"
-            app:cardElevation="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_product_image">
-
-            <LinearLayout
+            <VideoView
+                android:id="@+id/detail_video"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="20dp"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_warning_banner">
-
-                <ImageView
-                    android:id="@+id/icon_warning"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_warning"
-                    android:layout_marginEnd="12dp" />
-
-                <TextView
-                    android:id="@+id/text_warning"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="WARNING: THIS PRODUCT CONTAINS NICOTINE. NICOTINE IS AN ADDICTIVE CHEMICAL."
-                    android:textColor="@color/white"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/space_grotesk"
-                    android:letterSpacing="0.1"
-                    android:textAllCaps="true" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <!-- Ratings Section -->
         <androidx.cardview.widget.CardView
             android:id="@+id/card_rating"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
+            android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             app:cardBackgroundColor="@color/white"
@@ -110,7 +55,7 @@
             app:cardElevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_warning">
+            app:layout_constraintTop_toBottomOf="@id/card_product_image">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -185,7 +130,7 @@
             android:id="@+id/card_product_info"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             app:cardBackgroundColor="@color/white"
@@ -454,13 +399,14 @@
             android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="64dp"
+            android:layout_marginBottom="16dp"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/card_quantity_cart">
+            app:layout_constraintTop_toBottomOf="@id/card_quantity_cart"
+            app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"

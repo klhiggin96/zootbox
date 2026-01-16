@@ -13,4 +13,27 @@
 .externalNativeBuild
 .cxx
 local.properties
-nul.claude/settings.local.json
+.claude/settings.local.json
+
+# Environment and secrets
+.env
+.env.*
+
+# Node
+node_modules/
+package-lock.json
+
+# Generated/temporary files
+repo.txt
+dex_log
+*.log
+
+# Decompiled files
+dmvi_decompiled/
+dmvi_java/
+dmvi_hardware.apk
+
+# IDE
+.vscode/
+*.swp
+*.swo

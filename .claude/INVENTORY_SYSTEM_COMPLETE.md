@@ -211,12 +211,33 @@ TODO: Replace with database-driven product-to-coil mapping table.
 
 **Files Created:**
 - [`MyApplication/app/src/main/java/com/example/myapplication/sync/BackgroundSyncService.kt`](../MyApplication/app/src/main/java/com/example/myapplication/sync/BackgroundSyncService.kt)
+- [`MyApplication/app/src/main/res/xml/network_security_config.xml`](../MyApplication/app/src/main/res/xml/network_security_config.xml)
 
 **How It Works:**
 - Uses **WorkManager** for reliable background execution
-- Runs every **1 hour** (configurable)
-- Requires network connectivity
+- **Immediate sync** triggered on every inventory change (via `InventoryRepository`)
+- Backup sync every **1 hour** (configurable)
+- Uses `NetworkType.NOT_REQUIRED` for immediate syncs (localhost doesn't need internet)
 - Exponential backoff on failures (15-minute retry)
+
+**Network Security Configuration (Android 9+):**
+Android 9+ blocks cleartext HTTP by default. The app includes a network security config to allow HTTP to localhost:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
+```
+
+**Immediate Sync Triggers:**
+Sync is automatically triggered from `InventoryRepository` when:
+- `updateInventory()` is called (admin manual entry)
+- `resetAllInventory()` is called (admin "Fill All" button)
+- `decrementInventory()` is called (customer purchase)
 
 **Sync Payload:**
 ```json
@@ -439,9 +460,17 @@ await updateCoil(coilId, inventory);  // PUT /api/v1/admin/coils/{id}
 
 **Environment Variables:**
 ```bash
-export DB_PATH="/tmp/zootbox/inventory.db"
-export HTTP_HOST="0.0.0.0"  # Allow external connections
+export DB_PATH="/data/data/com.termux/files/home/zootbox/data/inventory.db"
+export HTTP_HOST="0.0.0.0"  # ⚠️ CRITICAL: Must be 0.0.0.0 for Tailscale/portal access
 export HTTP_PORT="8080"
+```
+
+**⚠️ CRITICAL:** `HTTP_HOST` must be `0.0.0.0` (not `127.0.0.1`) for the portal to connect via Tailscale VPN. If set to `127.0.0.1`, the backend only accepts local connections and the portal will get "Connection Refused" errors.
+
+**Start Backend Command:**
+```bash
+cd /data/data/com.termux/files/home/zootbox
+DB_PATH=/data/data/com.termux/files/home/zootbox/data/inventory.db HTTP_HOST=0.0.0.0 nohup ./backend > backend.log 2>&1 &
 ```
 
 ### Portal Settings
@@ -584,6 +613,67 @@ Alert admin when:
 - Jam detected
 - Daily sales summary
 
+## January 2026 Updates
+
+### Immediate Sync Implementation (Jan 9-10, 2026)
+
+The sync system was enhanced to provide **immediate inventory updates** to the portal:
+
+**Changes Made:**
+1. **`InventoryRepository.kt`** - Added `BackgroundSyncService.syncNow(context)` calls to:
+   - `updateInventory()` - Triggers sync after manual inventory changes
+   - `resetAllInventory()` - Triggers sync after "Fill All" operation
+
+2. **`BackgroundSyncService.kt`** - Changed `syncNow()` to use `NetworkType.NOT_REQUIRED`:
+   ```kotlin
+   fun syncNow(context: Context) {
+       val syncRequest = OneTimeWorkRequestBuilder<BackgroundSyncService>()
+           .setConstraints(
+               Constraints.Builder()
+                   .setRequiredNetworkType(NetworkType.NOT_REQUIRED) // Changed from CONNECTED
+                   .build()
+           )
+           .build()
+       WorkManager.getInstance(context).enqueue(syncRequest)
+   }
+   ```
+
+3. **`network_security_config.xml`** (New File) - Allows cleartext HTTP to localhost on Android 9+
+
+4. **`AndroidManifest.xml`** - Added reference to network security config:
+   ```xml
+   android:networkSecurityConfig="@xml/network_security_config"
+   ```
+
+### Backend Database Fix (Jan 10, 2026)
+
+The backend database was corrected to have exactly **10 coils (A1-J1)** instead of the incorrectly seeded 100 coils:
+
+```sql
+DELETE FROM coils WHERE id NOT IN ('A1','B1','C1','D1','E1','F1','G1','H1','I1','J1');
+DELETE FROM transactions WHERE coil_id NOT IN ('A1','B1','C1','D1','E1','F1','G1','H1','I1','J1');
+```
+
+### Verified End-to-End Sync (Jan 10, 2026)
+
+The complete sync flow was tested and verified working:
+
+1. ✅ Android app changes inventory via Admin Panel
+2. ✅ `InventoryRepository` triggers immediate sync
+3. ✅ `BackgroundSyncService` sends POST to `/api/v1/sync/inventory`
+4. ✅ Backend receives and updates its database
+5. ✅ Portal queries backend via Tailscale and shows updated values
+
+**Test Results:**
+```
+Backend Log:
+INF Received inventory sync coils=10 source=android transactions=0
+INF Sync complete coils_updated=10 transactions_added=0
+
+Portal API Response:
+[{"id":"A1","inventory":9,...},{"id":"B1","inventory":4,...},...]
+```
+
 ## Summary
 
 The ZootBox inventory system is now **complete and production-ready**:
@@ -593,7 +683,8 @@ The ZootBox inventory system is now **complete and production-ready**:
 ✅ **Real-Time Tracking** - Inventory updates on every vend
 ✅ **Out-of-Stock Detection** - UI automatically blocks purchases
 ✅ **Transaction Logging** - Complete audit trail for accounting
-✅ **Background Sync** - Portal stays updated hourly
+✅ **Immediate Sync** - Portal updates within seconds of inventory changes
+✅ **Backup Sync** - Hourly sync ensures no data loss
 ✅ **Flexible Restocking** - Quick "Fill All" or manual per-row adjustment
 
 The system ensures **consistent inventory data** across Android app, backend database, and web portal.
