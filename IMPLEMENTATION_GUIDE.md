@@ -1717,7 +1717,7 @@ C:\dev\MyApplication\
 ### Product Mapping
 | Product ID | Name | Row | Col | Age | Price |
 |------------|------|-----|-----|-----|-------|
-| 01 | ZOOT VAPE X | 1 | 1 | 21 | $29.99 |
+| 01 | RAZ VAPE | 1 | 1 | 21 | $21.99 |
 | 02 | NIGHT OWL CAM | 1 | 2 | - | $15.99 |
 | 03 | ZYN CITRUS | 1 | 3 | 21 | $8.99 |
 | 04 | RED BULL 12OZ | 1 | 4 | - | $4.99 |
